@@ -9,6 +9,12 @@ val InacapRedLight = Color(0xFFFF5449)
 val InacapRedContainer = Color(0xFFFFDAD6)
 val InacapOnRedContainer = Color(0xFF410002)
 
+// Success & Status Colors
+val SuccessGreen = Color(0xFF16A34A)
+val SuccessGreenDark = Color(0xFF15803D)
+val SuccessGreenContainer = Color(0xFFDCFCE7)
+val OnSuccessGreenContainer = Color(0xFF14532D)
+
 // Neutrals & Backgrounds (Fondo gris claro)
 val LightGrayBackground = Color(0xFFF4F5F8)
 val SurfaceCard = Color(0xFFFFFFFF)
