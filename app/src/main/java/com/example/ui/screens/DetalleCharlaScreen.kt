@@ -43,16 +43,21 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.HistorialItem
+import com.example.util.export.ExportHelper
 import com.example.ui.theme.InacapRed
 import com.example.ui.theme.SecondaryCharcoal
 import com.example.ui.theme.SuccessGreen
@@ -76,9 +81,11 @@ fun DetalleCharlaScreen(
         onVolver()
     }
 
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    var isExporting by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -592,12 +599,19 @@ fun DetalleCharlaScreen(
                     ) {
                         Button(
                             onClick = {
+                                if (isExporting) return@Button
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Generando PDF de la charla (${item.fecha})... Documento descargado con éxito."
-                                    )
+                                    try {
+                                        isExporting = true
+                                        ExportHelper.exportarCharlaPdf(context, item)
+                                    } catch (e: Exception) {
+                                        snackbarHostState.showSnackbar("Error al generar PDF: ${e.localizedMessage ?: "Error desconocido"}")
+                                    } finally {
+                                        isExporting = false
+                                    }
                                 }
                             },
+                            enabled = !isExporting,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(50.dp)
@@ -623,12 +637,19 @@ fun DetalleCharlaScreen(
 
                         OutlinedButton(
                             onClick = {
+                                if (isExporting) return@OutlinedButton
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Generando planilla Excel (.xlsx) de la charla... Archivo descargado con éxito."
-                                    )
+                                    try {
+                                        isExporting = true
+                                        ExportHelper.exportarCharlaCsv(context, item)
+                                    } catch (e: Exception) {
+                                        snackbarHostState.showSnackbar("Error al generar Excel: ${e.localizedMessage ?: "Error desconocido"}")
+                                    } finally {
+                                        isExporting = false
+                                    }
                                 }
                             },
+                            enabled = !isExporting,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(50.dp)
