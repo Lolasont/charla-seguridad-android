@@ -24,6 +24,9 @@ data class AsistenteEntity(
     val nombre: String,
     val rut: String,
     val firmado: Boolean,
+    val horaFirma: String = "",
     val observacion: String,
+    val esExterno: Boolean = false,
+    val procedencia: String = "",
     val orden: Int = 0
 )

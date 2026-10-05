@@ -20,6 +20,12 @@ interface ArtDao {
     @Query("SELECT * FROM arts WHERE id = :id")
     suspend fun getArtConEtapasById(id: String): ArtConEtapas?
 
+    @Query("SELECT * FROM arts WHERE sincronizado = 0")
+    suspend fun getArtsPendientes(): List<ArtEntity>
+
+    @Query("UPDATE arts SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarSincronizado(id: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertArt(art: ArtEntity)
 

@@ -25,7 +25,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,8 +33,9 @@ import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,12 +50,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,6 +83,8 @@ import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.SuccessGreenContainer
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.CharlasViewModel
+import com.example.viewmodel.ValidacionCharlaResultado
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 
@@ -87,6 +94,8 @@ fun RegistroScreen(
     viewModel: CharlasViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
     val formState by viewModel.formState.collectAsStateWithLifecycle()
@@ -102,7 +111,6 @@ fun RegistroScreen(
         )
     }
 
-    // Native DatePickerDialog
     val calendar = remember { Calendar.getInstance() }
     val datePickerDialog = remember {
         DatePickerDialog(
@@ -117,7 +125,6 @@ fun RegistroScreen(
         )
     }
 
-    // Native TimePickerDialog for Start Time
     val timePickerInicio = remember {
         TimePickerDialog(
             context,
@@ -131,7 +138,6 @@ fun RegistroScreen(
         )
     }
 
-    // Native TimePickerDialog for End Time
     val timePickerTermino = remember {
         TimePickerDialog(
             context,
@@ -145,641 +151,771 @@ fun RegistroScreen(
         )
     }
 
+    // Dialog state for pending signatures
+    var pendingFirmasDialogData by remember { mutableStateOf<ValidacionCharlaResultado.FirmasPendientes?>(null) }
     var showSummaryDialog by rememberSaveable { mutableStateOf(false) }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Banner Registro Cerrado
-        AnimatedVisibility(visible = isCerrado) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Banner Registro Cerrado
+            AnimatedVisibility(visible = isCerrado) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("banner_registro_cerrado"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = InacapRedContainer.copy(alpha = 0.6f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(42.dp),
+                            shape = CircleShape,
+                            color = InacapRed
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Bloqueado",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Registro cerrado — ya no se puede modificar",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = InacapRed
+                            )
+                            Text(
+                                text = "Los datos han sido incorporados al Historial.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Top Banner / Header Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("banner_registro_cerrado"),
-                shape = RoundedCornerShape(16.dp),
+                    .testTag("registro_header_card"),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = InacapRedContainer.copy(alpha = 0.6f)
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(50.dp),
                         shape = CircleShape,
-                        color = InacapRed
+                        color = InacapRed.copy(alpha = 0.1f)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Bloqueado",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
+                                imageVector = Icons.Default.Assignment,
+                                contentDescription = "Registro de Charla",
+                                tint = InacapRed,
+                                modifier = Modifier.size(26.dp)
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Registro cerrado — ya no se puede modificar",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "Registro de Charla",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = InacapRed
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("registro_title")
                         )
                         Text(
-                            text = "Los datos han sido incorporados al Historial.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = if (isCerrado) "Estado: Cerrado y Guardado" else "Prevención de Riesgos y Seguridad",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isCerrado) InacapRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isCerrado) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
-                }
-            }
-        }
 
-        // Top Banner / Header Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("registro_header_card"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    modifier = Modifier.size(50.dp),
-                    shape = CircleShape,
-                    color = InacapRed.copy(alpha = 0.1f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Assignment,
-                            contentDescription = "Registro de Charla",
-                            tint = InacapRed,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Registro de Charla",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("registro_title")
-                    )
-                    Text(
-                        text = if (isCerrado) "Estado: Cerrado y Guardado" else "Prevención de Riesgos y Seguridad",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isCerrado) InacapRed else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (isCerrado) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                }
-
-                if (isCerrado) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = InacapRed.copy(alpha = 0.12f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    if (isCerrado) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = InacapRed.copy(alpha = 0.12f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = InacapRed,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Bloqueado",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = InacapRed,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = InacapRed,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Bloqueado",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = InacapRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Section 1: Datos de la Charla Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("card_datos_charla"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
+            // Section 1: Datos de la Charla Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .testTag("card_datos_charla"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Datos de la Charla",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = InacapRed
-                    )
-                    if (isCerrado) {
-                        Text(
-                            text = "Solo lectura",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-                }
-
-                // Docente
-                OutlinedTextField(
-                    value = formState.docente,
-                    onValueChange = { viewModel.updateDocente(it) },
-                    enabled = !isCerrado,
-                    label = { Text("Docente / Expositor") },
-                    placeholder = { Text("Ej: Carlos Silva Rojas") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = InacapRed,
-                        focusedLabelColor = InacapRed,
-                        cursorColor = InacapRed
-                    ),
-                    shape = RoundedCornerShape(12.dp),
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("input_docente")
-                )
-
-                // Asignatura & Sección in row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OutlinedTextField(
-                        value = formState.asignatura,
-                        onValueChange = { viewModel.updateAsignatura(it) },
-                        enabled = !isCerrado,
-                        label = { Text("Asignatura") },
-                        placeholder = { Text("Ej: Taller Mecánico") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = InacapRed,
-                            focusedLabelColor = InacapRed,
-                            cursorColor = InacapRed
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1.8f)
-                            .testTag("input_asignatura")
-                    )
-
-                    OutlinedTextField(
-                        value = formState.seccion,
-                        onValueChange = { viewModel.updateSeccion(it) },
-                        enabled = !isCerrado,
-                        label = { Text("Sección") },
-                        placeholder = { Text("Ej: 002D") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = InacapRed,
-                            focusedLabelColor = InacapRed,
-                            cursorColor = InacapRed
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1.2f)
-                            .testTag("input_seccion")
-                    )
-                }
-
-                // Native Date Picker Field
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .then(
-                            if (!isCerrado) Modifier.clickable { datePickerDialog.show() }
-                            else Modifier
-                        )
-                ) {
-                    OutlinedTextField(
-                        value = formState.fecha,
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text("Fecha") },
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.CalendarToday,
-                                contentDescription = "Seleccionar fecha",
-                                tint = if (!isCerrado) InacapRed else TextSecondary
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("picker_fecha")
-                    )
-                }
-
-                // Native Time Pickers (Hora inicio & Hora término)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Hora inicio
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .then(
-                                if (!isCerrado) Modifier.clickable { timePickerInicio.show() }
-                                else Modifier
-                            )
-                    ) {
-                        OutlinedTextField(
-                            value = formState.horaInicio,
-                            onValueChange = {},
-                            readOnly = true,
-                            enabled = false,
-                            label = { Text("Hora Inicio") },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.AccessTime,
-                                    contentDescription = "Seleccionar hora inicio",
-                                    tint = if (!isCerrado) InacapRed else TextSecondary
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("picker_hora_inicio")
-                        )
-                    }
-
-                    // Hora término
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .then(
-                                if (!isCerrado) Modifier.clickable { timePickerTermino.show() }
-                                else Modifier
-                            )
-                    ) {
-                        OutlinedTextField(
-                            value = formState.horaTermino,
-                            onValueChange = {},
-                            readOnly = true,
-                            enabled = false,
-                            label = { Text("Hora Término") },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.AccessTime,
-                                    contentDescription = "Seleccionar hora término",
-                                    tint = if (!isCerrado) InacapRed else TextSecondary
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("picker_hora_termino")
-                        )
-                    }
-                }
-
-                // Tema
-                OutlinedTextField(
-                    value = formState.tema,
-                    onValueChange = { viewModel.updateTema(it) },
-                    enabled = !isCerrado,
-                    label = { Text("Tema de la Charla") },
-                    placeholder = { Text("Ej: Uso obligatorio de EPP y bloqueo de fuentes energéticas") },
-                    minLines = 2,
-                    maxLines = 4,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = InacapRed,
-                        focusedLabelColor = InacapRed,
-                        cursorColor = InacapRed
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_tema")
-                )
-            }
-        }
-
-        // Section 2: Tipo de Charla Card (Radio buttons group)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("card_tipo_charla"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Tipo de Charla",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = InacapRed
-                )
-                Text(
-                    text = "Modalidad seleccionada:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                tiposCharla.forEach { tipo ->
-                    val isSelected = formState.tipoCharla == tipo
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .then(
-                                if (!isCerrado) {
-                                    Modifier.selectable(
-                                        selected = isSelected,
-                                        onClick = { viewModel.updateTipoCharla(tipo) },
-                                        role = Role.RadioButton
-                                    )
-                                } else Modifier
-                            )
-                            .background(
-                                if (isSelected) InacapRed.copy(alpha = 0.08f) else Color.Transparent
-                            )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = if (!isCerrado) { { viewModel.updateTipoCharla(tipo) } } else null,
-                            enabled = !isCerrado,
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = InacapRed,
-                                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = tipo,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) InacapRed else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
-
-        // Section 3: Lista de Asistencia Editable Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("card_asistencia"),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val firmadosCount = formState.asistentes.count { it.firmado }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Lista de Asistencia",
+                            text = "Datos de la Charla",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = InacapRed
                         )
-                        Text(
-                            text = "$firmadosCount de ${formState.asistentes.size} firmados",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (firmadosCount > 0) SuccessGreen else TextSecondary,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (isCerrado) {
+                            Text(
+                                text = "Solo lectura",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (firmadosCount > 0) SuccessGreenContainer else MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = if (firmadosCount == formState.asistentes.size && formState.asistentes.isNotEmpty()) "Completa" else "$firmadosCount/${formState.asistentes.size}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (firmadosCount > 0) SuccessGreen else TextSecondary,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // Editable rows
-                formState.asistentes.forEachIndexed { index, asistente ->
-                    AsistenteRowItem(
-                        numero = index + 1,
-                        asistente = asistente,
-                        isReadOnly = isCerrado,
-                        onUpdate = { updated ->
-                            viewModel.updateAsistente(index, updated)
+                    // Docente con Validación
+                    OutlinedTextField(
+                        value = formState.docente,
+                        onValueChange = { viewModel.updateDocente(it) },
+                        enabled = !isCerrado,
+                        isError = formState.docenteError != null,
+                        supportingText = {
+                            if (formState.docenteError != null) {
+                                Text(
+                                    text = formState.docenteError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 12.sp
+                                )
+                            }
                         },
-                        onDelete = if (!isCerrado && formState.asistentes.size > 1) {
-                            { viewModel.eliminarAsistente(index) }
-                        } else null
-                    )
-
-                    if (index < formState.asistentes.lastIndex) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-                }
-
-                // Botón "+ Agregar asistente" (solo si no está cerrado)
-                if (!isCerrado) {
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.agregarAsistente()
-                        },
+                        label = { Text("Docente / Expositor *") },
+                        placeholder = { Text("Ej: Carlos Silva Rojas") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = InacapRed,
+                            focusedLabelColor = InacapRed,
+                            cursorColor = InacapRed,
+                            errorBorderColor = MaterialTheme.colorScheme.error
+                        ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("btn_agregar_asistente"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = InacapRed
-                        )
+                            .testTag("input_docente")
+                    )
+
+                    // Asignatura & Sección in row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Agregar asistente",
-                            modifier = Modifier.size(18.dp)
+                        OutlinedTextField(
+                            value = formState.asignatura,
+                            onValueChange = { viewModel.updateAsignatura(it) },
+                            enabled = !isCerrado,
+                            label = { Text("Asignatura") },
+                            placeholder = { Text("Ej: Taller Mecánico") },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = InacapRed,
+                                focusedLabelColor = InacapRed,
+                                cursorColor = InacapRed
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1.8f)
+                                .testTag("input_asignatura")
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Agregar asistente",
-                            fontWeight = FontWeight.SemiBold
+
+                        OutlinedTextField(
+                            value = formState.seccion,
+                            onValueChange = { viewModel.updateSeccion(it) },
+                            enabled = !isCerrado,
+                            label = { Text("Sección") },
+                            placeholder = { Text("Ej: 002D") },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = InacapRed,
+                                focusedLabelColor = InacapRed,
+                                cursorColor = InacapRed
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .testTag("input_seccion")
                         )
+                    }
+
+                    // Native Date Picker Field
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .then(
+                                if (!isCerrado) Modifier.clickable { datePickerDialog.show() }
+                                else Modifier
+                            )
+                    ) {
+                        OutlinedTextField(
+                            value = formState.fecha,
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text("Fecha") },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = "Seleccionar fecha",
+                                    tint = if (!isCerrado) InacapRed else TextSecondary
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("picker_fecha")
+                        )
+                    }
+
+                    // Native Time Pickers (Hora inicio & Hora término)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .then(
+                                    if (!isCerrado) Modifier.clickable { timePickerInicio.show() }
+                                    else Modifier
+                                )
+                        ) {
+                            OutlinedTextField(
+                                value = formState.horaInicio,
+                                onValueChange = {},
+                                readOnly = true,
+                                enabled = false,
+                                label = { Text("Hora Inicio") },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.AccessTime,
+                                        contentDescription = "Seleccionar hora inicio",
+                                        tint = if (!isCerrado) InacapRed else TextSecondary
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("picker_hora_inicio")
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .then(
+                                    if (!isCerrado) Modifier.clickable { timePickerTermino.show() }
+                                    else Modifier
+                                )
+                        ) {
+                            OutlinedTextField(
+                                value = formState.horaTermino,
+                                onValueChange = {},
+                                readOnly = true,
+                                enabled = false,
+                                label = { Text("Hora Término") },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.AccessTime,
+                                        contentDescription = "Seleccionar hora término",
+                                        tint = if (!isCerrado) InacapRed else TextSecondary
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("picker_hora_termino")
+                            )
+                        }
+                    }
+
+                    // Tema con Validación
+                    OutlinedTextField(
+                        value = formState.tema,
+                        onValueChange = { viewModel.updateTema(it) },
+                        enabled = !isCerrado,
+                        isError = formState.temaError != null,
+                        supportingText = {
+                            if (formState.temaError != null) {
+                                Text(
+                                    text = formState.temaError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        },
+                        label = { Text("Tema de la Charla *") },
+                        placeholder = { Text("Ej: Uso obligatorio de EPP y bloqueo de fuentes energéticas") },
+                        minLines = 2,
+                        maxLines = 4,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = InacapRed,
+                            focusedLabelColor = InacapRed,
+                            cursorColor = InacapRed,
+                            errorBorderColor = MaterialTheme.colorScheme.error
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("input_tema")
+                    )
+                }
+            }
+
+            // Section 2: Tipo de Charla Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_tipo_charla"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Tipo de Charla",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InacapRed
+                    )
+                    Text(
+                        text = "Modalidad seleccionada:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    tiposCharla.forEach { tipo ->
+                        val isSelected = formState.tipoCharla == tipo
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .then(
+                                    if (!isCerrado) {
+                                        Modifier.selectable(
+                                            selected = isSelected,
+                                            onClick = { viewModel.updateTipoCharla(tipo) },
+                                            role = Role.RadioButton
+                                        )
+                                    } else Modifier
+                                )
+                                .background(
+                                    if (isSelected) InacapRed.copy(alpha = 0.08f) else Color.Transparent
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = if (!isCerrado) { { viewModel.updateTipoCharla(tipo) } } else null,
+                                enabled = !isCerrado,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = InacapRed,
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = tipo,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) InacapRed else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Section 4: Action Buttons
-        if (isCerrado) {
-            // Botón "Nuevo registro" que limpia el formulario
-            Button(
-                onClick = {
-                    viewModel.nuevoRegistro()
-                },
+            // Section 3: Lista de Asistencia Editable Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
-                    .testTag("btn_nuevo_registro"),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = InacapRed,
-                    contentColor = Color.White
+                    .testTag("card_asistencia"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Nuevo registro",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Nuevo registro",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val validos = formState.asistentes.filter { it.nombre.isNotBlank() || it.rut.isNotBlank() }
+                    val firmadosCount = validos.count { it.firmado }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Lista de Asistencia",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = InacapRed
+                            )
+                            Text(
+                                text = "$firmadosCount de ${validos.size} asistentes firmados",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (firmadosCount > 0 && firmadosCount == validos.size) SuccessGreen else TextSecondary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (firmadosCount > 0 && firmadosCount == validos.size) SuccessGreenContainer else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = if (validos.isNotEmpty() && firmadosCount == validos.size) "Completa" else "$firmadosCount/${validos.size}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (firmadosCount > 0 && firmadosCount == validos.size) SuccessGreen else TextSecondary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Rows
+                    formState.asistentes.forEachIndexed { index, asistente ->
+                        AsistenteRowItem(
+                            numero = index + 1,
+                            asistente = asistente,
+                            isReadOnly = isCerrado,
+                            onUpdate = { updated ->
+                                viewModel.updateAsistente(index, updated)
+                            },
+                            onToggleFirma = {
+                                viewModel.toggleFirmaAsistente(index)
+                            },
+                            onDelete = if (!isCerrado && formState.asistentes.size > 1) {
+                                { viewModel.eliminarAsistente(index) }
+                            } else null
+                        )
+
+                        if (index < formState.asistentes.lastIndex) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    if (!isCerrado) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.agregarAsistente()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("btn_agregar_asistente"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = InacapRed
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Agregar asistente",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Agregar asistente",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
             }
-        } else {
-            // Botón "Guardar Registro"
-            Button(
-                onClick = {
-                    viewModel.guardarRegistro()
-                    showSummaryDialog = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .testTag("btn_guardar_registro"),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = InacapRed,
-                    contentColor = Color.White
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Save,
-                    contentDescription = "Guardar Registro",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Guardar Registro",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+
+            // Section 4: Action Buttons
+            if (isCerrado) {
+                Button(
+                    onClick = {
+                        viewModel.nuevoRegistro()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .testTag("btn_nuevo_registro"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InacapRed,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Nuevo registro",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Nuevo registro",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val resultado = viewModel.validarParaGuardar()
+                        when (resultado) {
+                            is ValidacionCharlaResultado.Error -> {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(resultado.mensaje)
+                                }
+                            }
+                            is ValidacionCharlaResultado.FirmasPendientes -> {
+                                pendingFirmasDialogData = resultado
+                            }
+                            is ValidacionCharlaResultado.ValidoParaGuardar -> {
+                                viewModel.ejecutarGuardadoDirecto()
+                                showSummaryDialog = true
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .testTag("btn_guardar_registro"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InacapRed,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = "Guardar Registro",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Guardar Registro",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Snackbar Host for validation and notifications
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
+    }
+
+    // Dialog: Confirmación de cierre con firmas pendientes
+    pendingFirmasDialogData?.let { data ->
+        AlertDialog(
+            onDismissRequest = { pendingFirmasDialogData = null },
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = InacapRedContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Alerta firmas",
+                            tint = InacapRed,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = "¿Cerrar acta con firmas pendientes?",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "${data.sinFirma} de ${data.total} asistentes no han firmado.",
+                        fontWeight = FontWeight.Bold,
+                        color = InacapRed
+                    )
+                    Text(
+                        text = "Si decides cerrar el acta ahora, los asistentes sin firma quedarán marcados automáticamente con la observación 'Sin firma'.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "⚠ Importante: Un acta cerrada no se puede editar después.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = InacapRed,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pendingFirmasDialogData = null
+                        viewModel.ejecutarCierreConFirmasPendientes()
+                        showSummaryDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = InacapRed),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.testTag("btn_confirmar_cerrar_igual")
+                ) {
+                    Text("Cerrar igual", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { pendingFirmasDialogData = null },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.testTag("btn_volver_dialogo_firmas")
+                ) {
+                    Text("Volver", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 
     // Resumen Dialog
     if (showSummaryDialog) {
-        val totalAsistentes = formState.asistentes.size
-        val firmados = formState.asistentes.filter { it.firmado }
+        val validos = formState.asistentes.filter { it.nombre.isNotBlank() || it.rut.isNotBlank() }
+        val firmados = validos.filter { it.firmado }
         val firmadosCount = firmados.size
+        val totalAsistentes = validos.size
 
         AlertDialog(
             onDismissRequest = { showSummaryDialog = false },
             icon = {
                 Surface(
                     shape = CircleShape,
-                    color = if (firmadosCount > 0) SuccessGreenContainer else InacapRedContainer,
+                    color = if (firmadosCount == totalAsistentes && totalAsistentes > 0) SuccessGreenContainer else InacapRedContainer,
                     modifier = Modifier.size(52.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (firmadosCount > 0) Icons.Default.CheckCircle else Icons.Outlined.Info,
+                            imageVector = if (firmadosCount == totalAsistentes && totalAsistentes > 0) Icons.Default.CheckCircle else Icons.Outlined.Info,
                             contentDescription = "Resumen",
-                            tint = if (firmadosCount > 0) SuccessGreen else InacapRed,
+                            tint = if (firmadosCount == totalAsistentes && totalAsistentes > 0) SuccessGreen else InacapRed,
                             modifier = Modifier.size(30.dp)
                         )
                     }
@@ -798,7 +934,7 @@ fun RegistroScreen(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (firmadosCount > 0) SuccessGreenContainer.copy(alpha = 0.5f) else InacapRed.copy(alpha = 0.08f),
+                        color = if (firmadosCount == totalAsistentes) SuccessGreenContainer.copy(alpha = 0.5f) else InacapRed.copy(alpha = 0.08f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -808,7 +944,7 @@ fun RegistroScreen(
                             Text(
                                 text = "Asistentes firmados: $firmadosCount de $totalAsistentes",
                                 fontWeight = FontWeight.Bold,
-                                color = if (firmadosCount > 0) SuccessGreen else InacapRed,
+                                color = if (firmadosCount == totalAsistentes) SuccessGreen else InacapRed,
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
@@ -820,7 +956,7 @@ fun RegistroScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "✓ Agregado al Historial de la app.\n✓ El formulario ha quedado bloqueado.",
+                            text = "✓ Guardado localmente como ⏳ Pendiente de sincronizar.\n✓ El formulario ha quedado bloqueado.",
                             style = MaterialTheme.typography.bodySmall,
                             color = InacapRed,
                             fontWeight = FontWeight.Medium,
@@ -844,11 +980,12 @@ fun RegistroScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "• Docente: ${if (formState.docente.isNotBlank()) formState.docente else "Sin especificar"}",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "• Docente: ${formState.docente}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "• Asignatura: ${if (formState.asignatura.isNotBlank()) formState.asignatura else "—"} (${if (formState.seccion.isNotBlank()) formState.seccion else "—"})",
+                            text = "• Asignatura: ${if (formState.asignatura.isNotBlank()) formState.asignatura else "General"} (${if (formState.seccion.isNotBlank()) formState.seccion else "S/S"})",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -860,7 +997,7 @@ fun RegistroScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "• Tema: ${if (formState.tema.isNotBlank()) formState.tema else "Sin tema registrado"}",
+                            text = "• Tema: ${formState.tema}",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -886,6 +1023,7 @@ fun AsistenteRowItem(
     asistente: Asistente,
     isReadOnly: Boolean = false,
     onUpdate: (Asistente) -> Unit,
+    onToggleFirma: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
     Card(
@@ -954,8 +1092,8 @@ fun AsistenteRowItem(
                 value = asistente.nombre,
                 onValueChange = { onUpdate(asistente.copy(nombre = it)) },
                 enabled = !isReadOnly,
-                label = { Text("Nombre") },
-                placeholder = { Text("Nombre y Apellido") },
+                label = { Text("Nombre y Apellido") },
+                placeholder = { Text("Ej: Felipe Carrasco") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -993,11 +1131,11 @@ fun AsistenteRowItem(
                         .testTag("input_rut_$numero")
                 )
 
-                // Botón de firma
+                // Botón de firma (con registro de hora exacta)
                 if (asistente.firmado) {
                     Button(
                         onClick = {
-                            if (!isReadOnly) onUpdate(asistente.copy(firmado = false))
+                            if (!isReadOnly) onToggleFirma()
                         },
                         enabled = !isReadOnly,
                         colors = ButtonDefaults.buttonColors(
@@ -1012,27 +1150,36 @@ fun AsistenteRowItem(
                             .height(52.dp)
                             .testTag("btn_firma_$numero")
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Firmado",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Firmado",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Firmado",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Firmado",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            if (asistente.horaFirma.isNotBlank()) {
+                                Text(
+                                    text = "${asistente.horaFirma} hrs",
+                                    fontSize = 10.sp,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
                         }
                     }
                 } else {
                     OutlinedButton(
                         onClick = {
-                            if (!isReadOnly) onUpdate(asistente.copy(firmado = true))
+                            if (!isReadOnly) onToggleFirma()
                         },
                         enabled = !isReadOnly,
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -1064,13 +1211,79 @@ fun AsistenteRowItem(
                 }
             }
 
+            // Interruptor "Externo" (Personas externas, ej. estudiantes de liceo)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Participante Externo",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Ej: Estudiantes de liceo en pasantía",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+
+                        Switch(
+                            checked = asistente.esExterno,
+                            onCheckedChange = { isChecked ->
+                                if (!isReadOnly) {
+                                    onUpdate(asistente.copy(esExterno = isChecked))
+                                }
+                            },
+                            enabled = !isReadOnly,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = InacapRed
+                            ),
+                            modifier = Modifier.testTag("switch_externo_$numero")
+                        )
+                    }
+
+                    // Campo obligatorio Procedencia cuando esExterno está activo
+                    if (asistente.esExterno) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = asistente.procedencia,
+                            onValueChange = { onUpdate(asistente.copy(procedencia = it)) },
+                            enabled = !isReadOnly,
+                            label = { Text("Procedencia *") },
+                            placeholder = { Text("Ej: Liceo Industrial A-23") },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = InacapRed,
+                                focusedLabelColor = InacapRed,
+                                cursorColor = InacapRed
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("input_procedencia_$numero")
+                        )
+                    }
+                }
+            }
+
             // Observación
             OutlinedTextField(
                 value = asistente.observacion,
                 onValueChange = { onUpdate(asistente.copy(observacion = it)) },
                 enabled = !isReadOnly,
                 label = { Text("Observación") },
-                placeholder = { Text("Ej: Sin novedades / EPP completo") },
+                placeholder = { Text("Ej: EPP completo / Sin novedades") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = InacapRed,

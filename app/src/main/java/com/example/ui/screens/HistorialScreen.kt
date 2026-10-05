@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,16 +25,22 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -42,7 +49,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -52,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,6 +89,7 @@ import com.example.ui.theme.SyncSuccessText
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.ArtViewModel
 import com.example.viewmodel.CharlasViewModel
+import kotlinx.coroutines.launch
 
 enum class TipoFiltroHistorial(val label: String) {
     PERSONA("Por Persona"),
@@ -90,9 +103,15 @@ fun HistorialScreen(
     charlasViewModel: CharlasViewModel = viewModel(),
     artViewModel: ArtViewModel = viewModel()
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // Dynamic connection to shared Room ViewModels via Flow
     val charlasItems by charlasViewModel.historial.collectAsStateWithLifecycle()
     val artItems by artViewModel.historialArt.collectAsStateWithLifecycle()
+
+    val isOnline by charlasViewModel.isOnline.collectAsStateWithLifecycle()
+    val isSyncing by charlasViewModel.isSyncing.collectAsStateWithLifecycle()
 
     // Selector superior: 0 = Charlas, 1 = ART
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -108,7 +127,6 @@ fun HistorialScreen(
         artItems.find { it.art.id == selectedArtId }
     }
 
-    // Handle full detail transitions
     if (selectedCharla != null) {
         DetalleCharlaScreen(
             item = selectedCharla,
@@ -120,90 +138,251 @@ fun HistorialScreen(
             onVolver = { selectedArtId = null }
         )
     } else {
-        // Main Historial Screen with Selector Tab
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Document Selector Tab Row ("Charlas" | "ART")
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = InacapRed,
-                    modifier = Modifier.testTag("tab_selector_documentos")
+                // Selector Superior ("Charlas" | "ART")
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 2.dp
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Assignment,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Charlas (${charlasItems.size})",
-                                    fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        },
-                        selectedContentColor = InacapRed,
-                        unselectedContentColor = TextSecondary,
-                        modifier = Modifier.testTag("tab_selector_charlas")
-                    )
-
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "ART (${artItems.size})",
-                                    fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium
-                                )
-                            }
-                        },
-                        selectedContentColor = InacapRed,
-                        unselectedContentColor = TextSecondary,
-                        modifier = Modifier.testTag("tab_selector_art")
-                    )
-                }
-            }
-
-            // Crossfade between independent lists
-            Crossfade(
-                targetState = selectedTab,
-                label = "historial_tab_transition"
-            ) { tabIndex ->
-                when (tabIndex) {
-                    0 -> {
-                        HistorialCharlasView(
-                            charlasItems = charlasItems,
-                            onItemClick = { item -> selectedCharlaId = item.id }
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = InacapRed,
+                        modifier = Modifier.testTag("tab_selector_documentos")
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Assignment,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Charlas (${charlasItems.size})",
+                                        fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                }
+                            },
+                            selectedContentColor = InacapRed,
+                            unselectedContentColor = TextSecondary,
+                            modifier = Modifier.testTag("tab_selector_charlas")
                         )
-                    }
-                    1 -> {
-                        HistorialArtView(
-                            artItems = artItems,
-                            onItemClick = { artConEtapas -> selectedArtId = artConEtapas.art.id }
+
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "ART (${artItems.size})",
+                                        fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                }
+                            },
+                            selectedContentColor = InacapRed,
+                            unselectedContentColor = TextSecondary,
+                            modifier = Modifier.testTag("tab_selector_art")
                         )
                     }
                 }
+
+                // Banner de Sincronización Simulada y Estado de Conexión
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .testTag("banner_conexion_sincronizacion"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isOnline) SuccessGreenContainer.copy(alpha = 0.4f) else InacapRed.copy(alpha = 0.06f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (isOnline) SuccessGreen else TextSecondary,
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (isOnline) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = if (isOnline) "Conectado" else "Sin conexión",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isOnline) SuccessGreen else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (isOnline) "Servidor INACAP en línea" else "Operando en modo local",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (isOnline) "En línea" else "Offline",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(end = 6.dp)
+                                )
+                                Switch(
+                                    checked = isOnline,
+                                    onCheckedChange = { checked ->
+                                        charlasViewModel.toggleConnection(checked) { count ->
+                                            coroutineScope.launch {
+                                                if (count > 0) {
+                                                    snackbarHostState.showSnackbar("$count registros sincronizados")
+                                                } else {
+                                                    snackbarHostState.showSnackbar("Todos los registros ya estaban sincronizados")
+                                                }
+                                            }
+                                        }
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = SuccessGreen
+                                    ),
+                                    modifier = Modifier.testTag("switch_conexion")
+                                )
+                            }
+                        }
+
+                        // Botón de reconexión y sincronización
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isSyncing) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        color = InacapRed,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Sincronizando de a uno con el servidor...",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = InacapRed,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            } else {
+                                val totalPendientes = charlasItems.count { !it.sincronizado } + artItems.count { !it.art.sincronizado }
+                                Text(
+                                    text = if (totalPendientes > 0) "$totalPendientes documento(s) pendientes de subir" else "Todo sincronizado",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (totalPendientes > 0) SyncPendingText else SuccessGreen,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    charlasViewModel.toggleConnection(true) { count ->
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("$count registros sincronizados")
+                                        }
+                                    }
+                                },
+                                enabled = !isSyncing,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = InacapRed,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier
+                                    .height(34.dp)
+                                    .testTag("btn_simular_reconexion")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Simular reconexión",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Crossfade between independent lists
+                Crossfade(
+                    targetState = selectedTab,
+                    label = "historial_tab_transition"
+                ) { tabIndex ->
+                    when (tabIndex) {
+                        0 -> {
+                            HistorialCharlasView(
+                                charlasItems = charlasItems,
+                                onItemClick = { item -> selectedCharlaId = item.id }
+                            )
+                        }
+                        1 -> {
+                            HistorialArtView(
+                                artItems = artItems,
+                                onItemClick = { artConEtapas -> selectedArtId = artConEtapas.art.id }
+                            )
+                        }
+                    }
+                }
             }
+
+            // Snackbar Host for sync notifications
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
         }
     }
 }
@@ -446,7 +625,6 @@ private fun HistorialArtView(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search Bar for ART
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.surface,
@@ -498,7 +676,6 @@ private fun HistorialArtView(
             }
         }
 
-        // Counter info
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -609,7 +786,6 @@ fun HistorialCardItem(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Header: Fecha, Tipo y Sync Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -742,7 +918,7 @@ fun HistorialCardItem(
                 modifier = Modifier.padding(vertical = 2.dp)
             )
 
-            // Footer Row: N° Asistentes and Verified Status
+            // Footer Row: N° Asistentes y estado de firmas
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -821,7 +997,6 @@ fun HistorialArtCardItem(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Header Row: Fecha and Badge ART
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -868,7 +1043,7 @@ fun HistorialArtCardItem(
                 }
             }
 
-            // Sync Status Badge: "✓ Sincronizado" o "⏳ Pendiente de sincronizar"
+            // Sync Status Badge
             if (art.sincronizado) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),

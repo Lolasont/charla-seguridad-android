@@ -20,6 +20,12 @@ interface CharlaDao {
     @Query("SELECT * FROM charlas WHERE id = :id")
     suspend fun getCharlaConAsistentesById(id: String): CharlaConAsistentes?
 
+    @Query("SELECT * FROM charlas WHERE sincronizado = 0")
+    suspend fun getCharlasPendientes(): List<CharlaEntity>
+
+    @Query("UPDATE charlas SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarSincronizado(id: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCharla(charla: CharlaEntity)
 

@@ -7,5 +7,8 @@ data class Asistente(
     var nombre: String = "",
     var rut: String = "",
     var firmado: Boolean = false,
-    var observacion: String = ""
+    var horaFirma: String = "",
+    var observacion: String = "",
+    var esExterno: Boolean = false,
+    var procedencia: String = ""
 )

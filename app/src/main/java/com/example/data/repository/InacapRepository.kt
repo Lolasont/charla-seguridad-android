@@ -32,6 +32,30 @@ class InacapRepository(
         }
     }
 
+    suspend fun getCharlasPendientes(): List<CharlaEntity> {
+        return withContext(Dispatchers.IO) {
+            charlaDao.getCharlasPendientes()
+        }
+    }
+
+    suspend fun getArtsPendientes(): List<ArtEntity> {
+        return withContext(Dispatchers.IO) {
+            artDao.getArtsPendientes()
+        }
+    }
+
+    suspend fun sincronizarCharla(id: String) {
+        withContext(Dispatchers.IO) {
+            charlaDao.marcarSincronizado(id)
+        }
+    }
+
+    suspend fun sincronizarArt(id: String) {
+        withContext(Dispatchers.IO) {
+            artDao.marcarSincronizado(id)
+        }
+    }
+
     suspend fun inicializarDatosSiEsNecesario() {
         withContext(Dispatchers.IO) {
             if (charlaDao.getCount() == 0) {
@@ -61,10 +85,10 @@ class InacapRepository(
             timestamp = 1790928000000L
         )
         val a1 = listOf(
-            AsistenteEntity(charlaId = c1Id, nombre = "Juan Morales Carrasco", rut = "19.845.210-4", firmado = true, observacion = "EPP completo", orden = 1),
-            AsistenteEntity(charlaId = c1Id, nombre = "Felipe Carrasco Vidal", rut = "20.114.892-7", firmado = true, observacion = "Sin observaciones", orden = 2),
-            AsistenteEntity(charlaId = c1Id, nombre = "Daniela Vega Poblete", rut = "19.531.004-K", firmado = true, observacion = "Verificación multímetro OK", orden = 3),
-            AsistenteEntity(charlaId = c1Id, nombre = "Ignacio Reyes Pinto", rut = "20.301.442-1", firmado = true, observacion = "EPP dieléctrico verificado", orden = 4)
+            AsistenteEntity(charlaId = c1Id, nombre = "Juan Morales Carrasco", rut = "19.845.210-4", firmado = true, horaFirma = "08:35", observacion = "EPP completo", esExterno = false, procedencia = "", orden = 1),
+            AsistenteEntity(charlaId = c1Id, nombre = "Felipe Carrasco Vidal", rut = "20.114.892-7", firmado = true, horaFirma = "08:36", observacion = "Sin observaciones", esExterno = false, procedencia = "", orden = 2),
+            AsistenteEntity(charlaId = c1Id, nombre = "Daniela Vega Poblete", rut = "19.531.004-K", firmado = true, horaFirma = "08:37", observacion = "Verificación multímetro OK", esExterno = false, procedencia = "", orden = 3),
+            AsistenteEntity(charlaId = c1Id, nombre = "Ignacio Reyes Pinto", rut = "20.301.442-1", firmado = true, horaFirma = "08:40", observacion = "EPP dieléctrico verificado", esExterno = true, procedencia = "Liceo Industrial de Concepción", orden = 4)
         )
         charlaDao.insertCharlaCompleta(c1, a1)
 
@@ -85,10 +109,10 @@ class InacapRepository(
             timestamp = 1790668800000L
         )
         val a2 = listOf(
-            AsistenteEntity(charlaId = c2Id, nombre = "Ignacio Soto Palma", rut = "19.442.109-8", firmado = true, observacion = "Uso de calzado de seguridad", orden = 1),
-            AsistenteEntity(charlaId = c2Id, nombre = "Valentina Rivas Gómez", rut = "20.551.782-3", firmado = true, observacion = "Sin novedades", orden = 2),
-            AsistenteEntity(charlaId = c2Id, nombre = "Matías Alarcón Leal", rut = "19.980.231-5", firmado = true, observacion = "Barreras ópticas revisadas", orden = 3),
-            AsistenteEntity(charlaId = c2Id, nombre = "Camila Torres Muñoz", rut = "20.123.456-0", firmado = true, observacion = "Sin novedades", orden = 4)
+            AsistenteEntity(charlaId = c2Id, nombre = "Ignacio Soto Palma", rut = "19.442.109-8", firmado = true, horaFirma = "10:05", observacion = "Uso de calzado de seguridad", esExterno = false, procedencia = "", orden = 1),
+            AsistenteEntity(charlaId = c2Id, nombre = "Valentina Rivas Gómez", rut = "20.551.782-3", firmado = true, horaFirma = "10:07", observacion = "Sin novedades", esExterno = false, procedencia = "", orden = 2),
+            AsistenteEntity(charlaId = c2Id, nombre = "Matías Alarcón Leal", rut = "19.980.231-5", firmado = true, horaFirma = "10:10", observacion = "Barreras ópticas revisadas", esExterno = true, procedencia = "Liceo Politécnico Carampangue", orden = 3),
+            AsistenteEntity(charlaId = c2Id, nombre = "Camila Torres Muñoz", rut = "20.123.456-0", firmado = true, horaFirma = "10:12", observacion = "Sin novedades", esExterno = false, procedencia = "", orden = 4)
         )
         charlaDao.insertCharlaCompleta(c2, a2)
 
@@ -109,10 +133,10 @@ class InacapRepository(
             timestamp = 1790323200000L
         )
         val a3 = listOf(
-            AsistenteEntity(charlaId = c3Id, nombre = "Sebastián Muñoz Rivas", rut = "18.994.512-1", firmado = true, observacion = "Traba mecánica verificada", orden = 1),
-            AsistenteEntity(charlaId = c3Id, nombre = "Lucas Henríquez Silva", rut = "19.231.874-9", firmado = true, observacion = "Sin observaciones", orden = 2),
-            AsistenteEntity(charlaId = c3Id, nombre = "Javier Castro Pino", rut = "20.004.112-6", firmado = true, observacion = "Gafas de seguridad puestas", orden = 3),
-            AsistenteEntity(charlaId = c3Id, nombre = "Nicolás Peña Vera", rut = "19.782.339-K", firmado = true, observacion = "Sin observaciones", orden = 4)
+            AsistenteEntity(charlaId = c3Id, nombre = "Sebastián Muñoz Rivas", rut = "18.994.512-1", firmado = true, horaFirma = "14:20", observacion = "Traba mecánica verificada", esExterno = false, procedencia = "", orden = 1),
+            AsistenteEntity(charlaId = c3Id, nombre = "Lucas Henríquez Silva", rut = "19.231.874-9", firmado = true, horaFirma = "14:21", observacion = "Sin observaciones", esExterno = false, procedencia = "", orden = 2),
+            AsistenteEntity(charlaId = c3Id, nombre = "Javier Castro Pino", rut = "20.004.112-6", firmado = true, horaFirma = "14:23", observacion = "Gafas de seguridad puestas", esExterno = false, procedencia = "", orden = 3),
+            AsistenteEntity(charlaId = c3Id, nombre = "Nicolás Peña Vera", rut = "19.782.339-K", firmado = true, horaFirma = "14:25", observacion = "Sin observaciones", esExterno = false, procedencia = "", orden = 4)
         )
         charlaDao.insertCharlaCompleta(c3, a3)
 
@@ -133,10 +157,10 @@ class InacapRepository(
             timestamp = 1789718400000L
         )
         val a4 = listOf(
-            AsistenteEntity(charlaId = c4Id, nombre = "Camilo Ortiz Durán", rut = "18.774.290-3", firmado = true, observacion = "Casco barboquejo OK", orden = 1),
-            AsistenteEntity(charlaId = c4Id, nombre = "Sofía Valenzuela Parra", rut = "20.401.882-7", firmado = true, observacion = "Sin observaciones", orden = 2),
-            AsistenteEntity(charlaId = c4Id, nombre = "Pablo Pinto Sanhueza", rut = "19.664.120-2", firmado = true, observacion = "Chaleco reflectante OK", orden = 3),
-            AsistenteEntity(charlaId = c4Id, nombre = "Constanza Morales", rut = "20.198.441-5", firmado = true, observacion = "Sin novedades", orden = 4)
+            AsistenteEntity(charlaId = c4Id, nombre = "Camilo Ortiz Durán", rut = "18.774.290-3", firmado = true, horaFirma = "09:08", observacion = "Casco barboquejo OK", esExterno = false, procedencia = "", orden = 1),
+            AsistenteEntity(charlaId = c4Id, nombre = "Sofía Valenzuela Parra", rut = "20.401.882-7", firmado = true, horaFirma = "09:10", observacion = "Sin observaciones", esExterno = false, procedencia = "", orden = 2),
+            AsistenteEntity(charlaId = c4Id, nombre = "Pablo Pinto Sanhueza", rut = "19.664.120-2", firmado = true, horaFirma = "09:12", observacion = "Chaleco reflectante OK", esExterno = false, procedencia = "", orden = 3),
+            AsistenteEntity(charlaId = c4Id, nombre = "Constanza Morales", rut = "20.198.441-5", firmado = true, horaFirma = "09:15", observacion = "Sin novedades", esExterno = true, procedencia = "Liceo Comercial San Pedro", orden = 4)
         )
         charlaDao.insertCharlaCompleta(c4, a4)
 
@@ -157,16 +181,15 @@ class InacapRepository(
             timestamp = 1789113600000L
         )
         val a5 = listOf(
-            AsistenteEntity(charlaId = c5Id, nombre = "Constanza Bravo Jara", rut = "19.345.109-7", firmado = true, observacion = "Guantes de nitrilo", orden = 1),
-            AsistenteEntity(charlaId = c5Id, nombre = "Diego Salgado Flores", rut = "20.211.890-4", firmado = true, observacion = "Campana de extracción activa", orden = 2),
-            AsistenteEntity(charlaId = c5Id, nombre = "Esteban Reyes Vidal", rut = "19.892.331-2", firmado = true, observacion = "Sin observaciones", orden = 3),
-            AsistenteEntity(charlaId = c5Id, nombre = "Francisca Lara", rut = "20.089.123-K", firmado = true, observacion = "Sin novedades", orden = 4)
+            AsistenteEntity(charlaId = c5Id, nombre = "Constanza Bravo Jara", rut = "19.345.109-7", firmado = true, horaFirma = "11:35", observacion = "Guantes de nitrilo", esExterno = false, procedencia = "", orden = 1),
+            AsistenteEntity(charlaId = c5Id, nombre = "Diego Salgado Flores", rut = "20.211.890-4", firmado = true, horaFirma = "11:38", observacion = "Campana de extracción activa", esExterno = false, procedencia = "", orden = 2),
+            AsistenteEntity(charlaId = c5Id, nombre = "Esteban Reyes Vidal", rut = "19.892.331-2", firmado = true, horaFirma = "11:40", observacion = "Sin observaciones", esExterno = false, procedencia = "", orden = 3),
+            AsistenteEntity(charlaId = c5Id, nombre = "Francisca Lara", rut = "20.089.123-K", firmado = true, horaFirma = "11:42", observacion = "Sin novedades", esExterno = false, procedencia = "", orden = 4)
         )
         charlaDao.insertCharlaCompleta(c5, a5)
     }
 
     private suspend fun prepopularArtsIniciales() {
-        // Sample ART 1: Sincronizado
         val art1Id = UUID.randomUUID().toString()
         val art1 = ArtEntity(
             id = art1Id,
@@ -187,7 +210,6 @@ class InacapRepository(
         )
         artDao.insertArtCompleto(art1, e1)
 
-        // Sample ART 2: ⏳ Pendiente de sincronizar
         val art2Id = UUID.randomUUID().toString()
         val art2 = ArtEntity(
             id = art2Id,

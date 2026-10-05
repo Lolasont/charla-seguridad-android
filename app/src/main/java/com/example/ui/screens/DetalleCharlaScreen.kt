@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -73,7 +72,6 @@ fun DetalleCharlaScreen(
     onVolver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Intercept back button to return to Historial list
     BackHandler {
         onVolver()
     }
@@ -362,7 +360,7 @@ fun DetalleCharlaScreen(
                 }
             }
 
-            // Card 2: Lista Completa de Asistentes
+            // Card 2: Lista Completa de Asistentes (con Externos y Hora de Firma)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -418,137 +416,92 @@ fun DetalleCharlaScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                    if (listaAsistentes.isEmpty()) {
-                        // Fallback if item only had personas names
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item.personas.forEachIndexed { i, persona ->
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listaAsistentes.forEachIndexed { index, asistente ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            modifier = Modifier.size(26.dp),
-                                            shape = CircleShape,
-                                            color = InacapRed.copy(alpha = 0.1f)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
+                                    Surface(
+                                        modifier = Modifier.size(28.dp),
+                                        shape = CircleShape,
+                                        color = InacapRed.copy(alpha = 0.1f)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "${index + 1}",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = InacapRed
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = if (asistente.nombre.isNotBlank()) asistente.nombre else "Asistente ${index + 1}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+
+                                        if (asistente.rut.isNotBlank()) {
+                                            Text(
+                                                text = "RUT: ${asistente.rut}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = TextSecondary
+                                            )
+                                        }
+
+                                        // Etiqueta "Externo · [procedencia]"
+                                        if (asistente.esExterno) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = InacapRed.copy(alpha = 0.08f),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
                                                 Text(
-                                                    text = "${i + 1}",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = InacapRed
+                                                    text = "Externo · ${asistente.procedencia.ifBlank { "Sin procedencia especificada" }}",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = InacapRed,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                 )
                                             }
                                         }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = persona,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
 
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = SuccessGreenContainer
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.CheckCircle,
-                                                contentDescription = null,
-                                                tint = SuccessGreen,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
+                                        if (asistente.observacion.isNotBlank()) {
                                             Text(
-                                                text = "Firmado",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = SuccessGreen
+                                                text = "Obs: ${asistente.observacion}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                 }
-                            }
-                        }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listaAsistentes.forEachIndexed { index, asistente ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Surface(
-                                            modifier = Modifier.size(28.dp),
-                                            shape = CircleShape,
-                                            color = InacapRed.copy(alpha = 0.1f)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text(
-                                                    text = "${index + 1}",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = InacapRed
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
-                                                text = if (asistente.nombre.isNotBlank()) asistente.nombre else "Asistente ${index + 1}",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            if (asistente.rut.isNotBlank()) {
-                                                Text(
-                                                    text = "RUT: ${asistente.rut}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = TextSecondary
-                                                )
-                                            }
-                                            if (asistente.observacion.isNotBlank()) {
-                                                Text(
-                                                    text = "Obs: ${asistente.observacion}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
 
-                                    // Signature badge
-                                    if (asistente.firmado) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = SuccessGreenContainer
+                                // Signature Badge con Hora
+                                if (asistente.firmado) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = SuccessGreenContainer
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(
                                                     imageVector = Icons.Outlined.CheckCircle,
                                                     contentDescription = "Firmado",
@@ -563,30 +516,38 @@ fun DetalleCharlaScreen(
                                                     color = SuccessGreen
                                                 )
                                             }
-                                        }
-                                    } else {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = MaterialTheme.colorScheme.surfaceVariant
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Close,
-                                                    contentDescription = "Sin firmar",
-                                                    tint = TextSecondary,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
+                                            if (asistente.horaFirma.isNotBlank()) {
                                                 Text(
-                                                    text = "Sin firmar",
-                                                    fontSize = 11.sp,
+                                                    text = "${asistente.horaFirma} hrs",
+                                                    fontSize = 10.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = TextSecondary
+                                                    color = SuccessGreen
                                                 )
                                             }
+                                        }
+                                    }
+                                } else {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Close,
+                                                contentDescription = "Sin firmar",
+                                                tint = TextSecondary,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Sin firmar",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = TextSecondary
+                                            )
                                         }
                                     }
                                 }
@@ -596,7 +557,7 @@ fun DetalleCharlaScreen(
                 }
             }
 
-            // Card 3: Botones de Exportación (Movidos aquí)
+            // Card 3: Botones de Exportación
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -629,7 +590,6 @@ fun DetalleCharlaScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Botón "Exportar a PDF"
                         Button(
                             onClick = {
                                 coroutineScope.launch {
@@ -661,7 +621,6 @@ fun DetalleCharlaScreen(
                             )
                         }
 
-                        // Botón "Exportar a Excel"
                         OutlinedButton(
                             onClick = {
                                 coroutineScope.launch {
