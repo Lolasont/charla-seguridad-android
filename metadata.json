@@ -1,0 +1,6 @@
+{
+  "name": "Charlas INACAP",
+  "description": "Sistema de registro de Charlas de Seguridad y ART - INACAP San Pedro de la Paz",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
