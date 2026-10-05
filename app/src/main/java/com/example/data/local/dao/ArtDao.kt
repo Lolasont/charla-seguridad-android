@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import com.example.data.local.entities.ArtConEtapas
 import com.example.data.local.entities.ArtEntity
 import com.example.data.local.entities.EtapaTrabajoEntity
+import com.example.data.local.entities.PersonalEjecutanteEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -32,10 +33,20 @@ interface ArtDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEtapas(etapas: List<EtapaTrabajoEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPersonalEjecutante(personal: List<PersonalEjecutanteEntity>)
+
     @Transaction
-    suspend fun insertArtCompleto(art: ArtEntity, etapas: List<EtapaTrabajoEntity>) {
+    suspend fun insertArtCompleto(
+        art: ArtEntity,
+        etapas: List<EtapaTrabajoEntity>,
+        personal: List<PersonalEjecutanteEntity> = emptyList()
+    ) {
         insertArt(art)
         insertEtapas(etapas)
+        if (personal.isNotEmpty()) {
+            insertPersonalEjecutante(personal)
+        }
     }
 
     @Query("SELECT COUNT(*) FROM arts")

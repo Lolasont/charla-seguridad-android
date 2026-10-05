@@ -26,9 +26,13 @@ class InacapRepository(
         }
     }
 
-    suspend fun guardarArtCompleto(art: ArtEntity, etapas: List<EtapaTrabajoEntity>) {
+    suspend fun guardarArtCompleto(
+        art: ArtEntity,
+        etapas: List<EtapaTrabajoEntity>,
+        personal: List<com.example.data.local.entities.PersonalEjecutanteEntity> = emptyList()
+    ) {
         withContext(Dispatchers.IO) {
-            artDao.insertArtCompleto(art, etapas)
+            artDao.insertArtCompleto(art, etapas, personal)
         }
     }
 
@@ -198,6 +202,18 @@ class InacapRepository(
             fecha = "03/10/2026",
             docente = "Rodrigo Morales Castillo",
             lugar = "Taller Mecánico N° 2",
+            tipoActividad = "Práctica",
+            nivelTecnico = "Intermedio",
+            equipoApoyo = "Herramientas mecánicas|Máquinas de presión hidráulica|Taladro eléctrico",
+            equipoApoyoOtros = "",
+            epp = "Guante de cabritilla|Zapatos de Seguridad dieléctrico|Antiparra de Seguridad",
+            eppOtros = "",
+            comandoVoz = "Atención|Precaución",
+            condicionesAmbientales = "Ruido|Superficies resbaladizas",
+            condicionesAmbientalesOtros = "",
+            charlaSeguridadInicial = true,
+            charlaVinculadaTema = "Riesgos en el uso de elevadores hidráulicos y fosas de inspección",
+            charlaVinculadaFecha = "25/09/2026",
             responsableFirmado = true,
             cerrada = true,
             sincronizado = true,
@@ -208,7 +224,12 @@ class InacapRepository(
             EtapaTrabajoEntity(artId = art1Id, etapa = "Retiro de múltiples de admisión y escape", riesgoAsociado = "Golpeado por/contra/con", medidaControl = "Uso de herramientas calibradas y despeje de zona", orden = 2),
             EtapaTrabajoEntity(artId = art1Id, etapa = "Izaje y retiro de culata", riesgoAsociado = "Caída de materiales", medidaControl = "Uso de pluma hidráulica y eslingas certificadas", orden = 3)
         )
-        artDao.insertArtCompleto(art1, e1)
+        val p1 = listOf(
+            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Juan Morales Carrasco", rut = "19.845.210-4", firmado = true, horaFirma = "08:45", orden = 1),
+            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Felipe Carrasco Vidal", rut = "20.114.892-7", firmado = true, horaFirma = "08:46", orden = 2),
+            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Daniela Vega Poblete", rut = "19.531.004-K", firmado = true, horaFirma = "08:48", orden = 3)
+        )
+        artDao.insertArtCompleto(art1, e1, p1)
 
         val art2Id = UUID.randomUUID().toString()
         val art2 = ArtEntity(
@@ -218,6 +239,18 @@ class InacapRepository(
             fecha = "30/09/2026",
             docente = "Carlos Silva Rojas",
             lugar = "Laboratorio de Control y Automatización",
+            tipoActividad = "Práctica",
+            nivelTecnico = "Avanzado",
+            equipoApoyo = "Red eléctrica trifásica|Dispositivos de maniobra eléctrica|Tablero o Gabinete eléctrico|Instrumento de medida",
+            equipoApoyoOtros = "",
+            epp = "Guante dieléctrico|Zapatos de Seguridad dieléctrico|Antiparra de Seguridad|Casco dieléctrico|Lápiz detector de voltaje",
+            eppOtros = "",
+            comandoVoz = "Alto|Atención|Precaución",
+            condicionesAmbientales = "Sin Ventilación",
+            condicionesAmbientalesOtros = "",
+            charlaSeguridadInicial = true,
+            charlaVinculadaTema = "Inspección previa de herramientas eléctricas y bloqueo LOTO",
+            charlaVinculadaFecha = "02/10/2026",
             responsableFirmado = true,
             cerrada = true,
             sincronizado = false,
@@ -227,6 +260,10 @@ class InacapRepository(
             EtapaTrabajoEntity(artId = art2Id, etapa = "Verificación de ausencia de tensión en barra principal", riesgoAsociado = "Choque eléctrico", medidaControl = "Uso de tester certificado y guantes clase 0", orden = 1),
             EtapaTrabajoEntity(artId = art2Id, etapa = "Conexión de cableado de comunicación", riesgoAsociado = "Contacto con partes activas", medidaControl = "Aislamiento de terminales y bloqueo físico", orden = 2)
         )
-        artDao.insertArtCompleto(art2, e2)
+        val p2 = listOf(
+            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art2Id, nombre = "Ignacio Soto Palma", rut = "19.442.109-8", firmado = true, horaFirma = "10:15", orden = 1),
+            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art2Id, nombre = "Valentina Rivas Gómez", rut = "20.551.782-3", firmado = true, horaFirma = "10:16", orden = 2)
+        )
+        artDao.insertArtCompleto(art2, e2, p2)
     }
 }

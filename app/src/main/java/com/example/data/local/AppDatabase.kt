@@ -10,15 +10,17 @@ import com.example.data.local.entities.ArtEntity
 import com.example.data.local.entities.AsistenteEntity
 import com.example.data.local.entities.CharlaEntity
 import com.example.data.local.entities.EtapaTrabajoEntity
+import com.example.data.local.entities.PersonalEjecutanteEntity
 
 @Database(
     entities = [
         CharlaEntity::class,
         AsistenteEntity::class,
         ArtEntity::class,
-        EtapaTrabajoEntity::class
+        EtapaTrabajoEntity::class,
+        PersonalEjecutanteEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

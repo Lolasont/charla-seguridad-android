@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,18 +22,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -60,7 +68,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.entities.ArtConEtapas
-import com.example.util.export.ExportHelper
 import com.example.ui.theme.InacapRed
 import com.example.ui.theme.SecondaryCharcoal
 import com.example.ui.theme.SuccessGreen
@@ -72,8 +79,10 @@ import com.example.ui.theme.SyncSuccessBorder
 import com.example.ui.theme.SyncSuccessContainer
 import com.example.ui.theme.SyncSuccessText
 import com.example.ui.theme.TextSecondary
+import com.example.util.export.ExportHelper
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DetalleArtScreen(
     artConEtapas: ArtConEtapas,
@@ -92,6 +101,20 @@ fun DetalleArtScreen(
 
     val art = artConEtapas.art
     val etapas = artConEtapas.etapas.sortedBy { it.orden }
+    val personal = artConEtapas.personalEjecutante.sortedBy { it.orden }
+
+    val equiposList = remember(art.equipoApoyo) {
+        art.equipoApoyo.split("|").filter { it.isNotBlank() }
+    }
+    val eppList = remember(art.epp) {
+        art.epp.split("|").filter { it.isNotBlank() }
+    }
+    val comandosList = remember(art.comandoVoz) {
+        art.comandoVoz.split("|").filter { it.isNotBlank() }
+    }
+    val condicionesList = remember(art.condicionesAmbientales) {
+        art.condicionesAmbientales.split("|").filter { it.isNotBlank() }
+    }
 
     Box(
         modifier = modifier
@@ -276,6 +299,71 @@ fun DetalleArtScreen(
                         }
                     }
 
+                    // Modalidad y Nivel Técnico
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("Tipo Actividad", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text(art.tipoActividad, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("Nivel Técnico", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                                Text(art.nivelTecnico, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+
+                    // Charla Vinculada
+                    if (art.charlaSeguridadInicial) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = SuccessGreenContainer.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Assignment,
+                                    contentDescription = null,
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Charla de Seguridad Inicial: Sí",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = SuccessGreen
+                                    )
+                                    if (art.charlaVinculadaTema != null) {
+                                        Text(
+                                            text = "Charla vinculada: ${art.charlaVinculadaFecha ?: ""} • ${art.charlaVinculadaTema}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Especialidad
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
@@ -416,7 +504,128 @@ fun DetalleArtScreen(
                 }
             }
 
-            // Card 2: Etapas del Trabajo Evaluadas
+            // Card 2: Equipos, EPP y Condiciones (Solo lo seleccionado)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_detalle_equipos_epp"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Recursos, EPP y Entorno",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InacapRed
+                    )
+
+                    // 1. Equipo de Apoyo
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Build, contentDescription = null, tint = InacapRed, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Equipo de Apoyo:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (equiposList.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                equiposList.forEach { eq ->
+                                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) {
+                                        Text(eq, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("Ninguno seleccionado", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        }
+                        if (art.equipoApoyoOtros.isNotBlank()) {
+                            Text("Otros: ${art.equipoApoyoOtros}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // 2. EPP
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = InacapRed, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Equipo de Protección Personal (EPP):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (eppList.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                eppList.forEach { epp ->
+                                    Surface(shape = RoundedCornerShape(6.dp), color = InacapRed.copy(alpha = 0.08f)) {
+                                        Text(epp, fontSize = 11.sp, color = InacapRed, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("Ninguno seleccionado", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        }
+                        if (art.eppOtros.isNotBlank()) {
+                            Text("Otros: ${art.eppOtros}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // 3. Comando de Voz
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Hearing, contentDescription = null, tint = InacapRed, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Comando de Voz:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (comandosList.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                comandosList.forEach { cv ->
+                                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                                        Text(cv, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("Ninguno seleccionado", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                    // 4. Condiciones Ambientales
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CloudQueue, contentDescription = null, tint = InacapRed, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Condiciones Ambientales:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (condicionesList.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                condicionesList.forEach { ca ->
+                                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) {
+                                        Text(ca, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("Ninguna condición crítica seleccionada", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        }
+                        if (art.condicionesAmbientalesOtros.isNotBlank()) {
+                            Text("Otras: ${art.condicionesAmbientalesOtros}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+            }
+
+            // Card 3: Etapas del Trabajo Evaluadas
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -484,9 +693,7 @@ fun DetalleArtScreen(
                                         .padding(14.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Surface(
                                             modifier = Modifier.size(24.dp),
                                             shape = CircleShape,
@@ -510,7 +717,6 @@ fun DetalleArtScreen(
                                         )
                                     }
 
-                                    // Riesgo badge
                                     if (etapa.riesgoAsociado.isNotBlank()) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -532,7 +738,6 @@ fun DetalleArtScreen(
                                         }
                                     }
 
-                                    // Medida de control
                                     if (etapa.medidaControl.isNotBlank()) {
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
@@ -561,7 +766,121 @@ fun DetalleArtScreen(
                 }
             }
 
-            // Card 3: Firma del Responsable
+            // Card 4: Personal Ejecutante (Lista con firmas y hora)
+            if (personal.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("card_detalle_personal_ejecutante"),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        val firmadosCount = personal.count { it.firmado }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Personal Ejecutante",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = InacapRed
+                                )
+                                Text(
+                                    text = "$firmadosCount de ${personal.size} ejecutantes firmados",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (firmadosCount > 0 && firmadosCount == personal.size) SuccessGreenContainer else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    text = "$firmadosCount/${personal.size}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (firmadosCount > 0 && firmadosCount == personal.size) SuccessGreen else TextSecondary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            personal.forEachIndexed { index, p ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            modifier = Modifier.size(24.dp),
+                                            shape = CircleShape,
+                                            color = InacapRed.copy(alpha = 0.1f)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text("${index + 1}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = InacapRed)
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(p.nombre, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                            if (p.rut.isNotBlank()) {
+                                                Text(p.rut, fontSize = 11.sp, color = TextSecondary)
+                                            }
+                                        }
+                                    }
+
+                                    if (p.firmado) {
+                                        Surface(shape = RoundedCornerShape(6.dp), color = SuccessGreenContainer) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(12.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (p.horaFirma.isNotBlank()) "Firmado ${p.horaFirma}" else "Firmado",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = SuccessGreen
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                                            Text("Sin firmar", fontSize = 11.sp, color = TextSecondary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Card 5: Firma del Responsable
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -645,7 +964,7 @@ fun DetalleArtScreen(
                 }
             }
 
-            // Card 4: Botones de Exportación
+            // Card 6: Botones de Exportación
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -760,7 +1079,6 @@ fun DetalleArtScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Snackbar Host
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier

@@ -109,7 +109,10 @@ fun MainScreen() {
             ) { targetScreen ->
                 when (targetScreen) {
                     NavScreen.REGISTRO -> RegistroScreen(viewModel = charlasViewModel)
-                    NavScreen.ART -> ArtScreen(viewModel = artViewModel)
+                    NavScreen.ART -> ArtScreen(
+                        viewModel = artViewModel,
+                        charlasViewModel = charlasViewModel
+                    )
                     NavScreen.HISTORIAL -> HistorialScreen(
                         charlasViewModel = charlasViewModel,
                         artViewModel = artViewModel

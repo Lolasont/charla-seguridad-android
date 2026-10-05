@@ -9,5 +9,10 @@ data class ArtConEtapas(
         parentColumn = "id",
         entityColumn = "artId"
     )
-    val etapas: List<EtapaTrabajoEntity>
+    val etapas: List<EtapaTrabajoEntity>,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "artId"
+    )
+    val personalEjecutante: List<PersonalEjecutanteEntity> = emptyList()
 )
