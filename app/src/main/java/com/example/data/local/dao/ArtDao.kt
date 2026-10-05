@@ -1,0 +1,37 @@
+package com.example.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import com.example.data.local.entities.ArtConEtapas
+import com.example.data.local.entities.ArtEntity
+import com.example.data.local.entities.EtapaTrabajoEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ArtDao {
+    @Transaction
+    @Query("SELECT * FROM arts ORDER BY timestamp DESC")
+    fun getArtsConEtapas(): Flow<List<ArtConEtapas>>
+
+    @Transaction
+    @Query("SELECT * FROM arts WHERE id = :id")
+    suspend fun getArtConEtapasById(id: String): ArtConEtapas?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertArt(art: ArtEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEtapas(etapas: List<EtapaTrabajoEntity>)
+
+    @Transaction
+    suspend fun insertArtCompleto(art: ArtEntity, etapas: List<EtapaTrabajoEntity>) {
+        insertArt(art)
+        insertEtapas(etapas)
+    }
+
+    @Query("SELECT COUNT(*) FROM arts")
+    suspend fun getCount(): Int
+}
