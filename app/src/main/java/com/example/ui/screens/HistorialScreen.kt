@@ -1,9 +1,10 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,18 +23,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -42,11 +40,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +49,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,14 +58,20 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.model.HistorialItem
 import com.example.ui.theme.InacapRed
-import com.example.ui.theme.InacapRedContainer
-import com.example.ui.theme.SecondaryCharcoal
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.SuccessGreenContainer
+import com.example.ui.theme.SyncPendingBorder
+import com.example.ui.theme.SyncPendingContainer
+import com.example.ui.theme.SyncPendingText
+import com.example.ui.theme.SyncSuccessBorder
+import com.example.ui.theme.SyncSuccessContainer
+import com.example.ui.theme.SyncSuccessText
 import com.example.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
+import com.example.viewmodel.CharlasViewModel
 
 enum class TipoFiltroHistorial(val label: String) {
     PERSONA("Por Persona"),
@@ -81,83 +81,51 @@ enum class TipoFiltroHistorial(val label: String) {
 
 @Composable
 fun HistorialScreen(
+    modifier: Modifier = Modifier,
+    viewModel: CharlasViewModel = viewModel()
+) {
+    // Dynamic connection to shared ViewModel
+    val historialItems by viewModel.historial.collectAsStateWithLifecycle()
+
+    // Navigation state to DetalleCharlaScreen
+    var selectedItemId by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectedItem = remember(selectedItemId, historialItems) {
+        historialItems.find { it.id == selectedItemId }
+    }
+
+    Crossfade(
+        targetState = selectedItem,
+        label = "detalle_charla_transition"
+    ) { item ->
+        if (item != null) {
+            DetalleCharlaScreen(
+                item = item,
+                onVolver = { selectedItemId = null }
+            )
+        } else {
+            HistorialListView(
+                historialItems = historialItems,
+                onItemClick = { clickedItem ->
+                    selectedItemId = clickedItem.id
+                },
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistorialListView(
+    historialItems: List<HistorialItem>,
+    onItemClick: (HistorialItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-
     // Search and filter state
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedFilter by rememberSaveable { mutableStateOf(TipoFiltroHistorial.DOCENTE) }
 
-    // 4-5 Realistic historical sample data items (Sept - Oct 2026)
-    val historialItems = remember {
-        listOf(
-            HistorialItem(
-                id = "1",
-                fecha = "02/10/2026",
-                docente = "Carlos Silva Rojas",
-                asignatura = "Taller de Mantenimiento Electromecánico",
-                seccion = "002D",
-                tipo = "Charla 5 minutos",
-                numeroAsistentes = 16,
-                asistentesFirmados = 16,
-                tema = "Inspección previa de herramientas eléctricas y bloqueo LOTO",
-                personas = listOf("Juan Morales", "Felipe Carrasco", "Daniela Vega", "Carlos Silva", "Ignacio Reyes")
-            ),
-            HistorialItem(
-                id = "2",
-                fecha = "29/09/2026",
-                docente = "Marcela Pardo Fuentes",
-                asignatura = "Automatización y Robótica Industrial",
-                seccion = "001D",
-                tipo = "Charla Integral",
-                numeroAsistentes = 22,
-                asistentesFirmados = 22,
-                tema = "Paradas de emergencia y protocolos en celdas robotizadas",
-                personas = listOf("Marcela Pardo", "Ignacio Soto", "Valentina Rivas", "Matías Alarcón", "Camila Torres")
-            ),
-            HistorialItem(
-                id = "3",
-                fecha = "25/09/2026",
-                docente = "Héctor Garrido Vera",
-                asignatura = "Sistemas de Frenos y Dirección",
-                seccion = "003V",
-                tipo = "Reinstrucción",
-                numeroAsistentes = 14,
-                asistentesFirmados = 14,
-                tema = "Riesgos en el uso de elevadores hidráulicos y fosas de inspección",
-                personas = listOf("Héctor Garrido", "Sebastián Muñoz", "Lucas Henríquez", "Javier Castro", "Nicolás Peña")
-            ),
-            HistorialItem(
-                id = "4",
-                fecha = "18/09/2026",
-                docente = "Andrea Navarrete Soto",
-                asignatura = "Prevención de Riesgos en Minería y Construcción",
-                seccion = "001V",
-                tipo = "Charla Externa",
-                numeroAsistentes = 28,
-                asistentesFirmados = 28,
-                tema = "Procedimientos de trabajo seguro en excavaciones y taludes",
-                personas = listOf("Andrea Navarrete", "Camilo Ortiz", "Sofía Valenzuela", "Pablo Pinto", "Constanza Morales")
-            ),
-            HistorialItem(
-                id = "5",
-                fecha = "11/09/2026",
-                docente = "Rodrigo Morales Castillo",
-                asignatura = "Laboratorio de Ensayos No Destructivos",
-                seccion = "002D",
-                tipo = "Charla Interna",
-                numeroAsistentes = 12,
-                asistentesFirmados = 12,
-                tema = "Protección radiológica y manejo seguro de líquidos penetrantes",
-                personas = listOf("Rodrigo Morales", "Constanza Bravo", "Diego Salgado", "Esteban Reyes", "Francisca Lara")
-            )
-        )
-    }
-
     // Filtered list based on selected filter and query
-    val filteredList by remember {
+    val filteredList by remember(historialItems, searchQuery, selectedFilter) {
         derivedStateOf {
             val query = searchQuery.trim()
             if (query.isEmpty()) {
@@ -206,7 +174,7 @@ fun HistorialScreen(
                             Text(
                                 text = when (selectedFilter) {
                                     TipoFiltroHistorial.DOCENTE -> "Buscar por nombre del docente..."
-                                    TipoFiltroHistorial.FECHA -> "Buscar por fecha (ej: 29/09, oct)..."
+                                    TipoFiltroHistorial.FECHA -> "Buscar por fecha (ej: 02/10, oct)..."
                                     TipoFiltroHistorial.PERSONA -> "Buscar por nombre de participante..."
                                 },
                                 fontSize = 14.sp
@@ -289,15 +257,16 @@ fun HistorialScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${filteredList.size} registro(s) encontrado(s)",
+                    text = "${filteredList.size} registro(s) en total",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Sede San Pedro de la Paz",
+                    text = "Toca una tarjeta para ver detalle",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = InacapRed,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
 
@@ -348,110 +317,28 @@ fun HistorialScreen(
                         .fillMaxWidth()
                         .weight(1f)
                         .testTag("lista_historial"),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 100.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(
                         items = filteredList,
                         key = { it.id }
                     ) { item ->
-                        HistorialCardItem(item = item)
+                        HistorialCardItem(
+                            item = item,
+                            onClick = { onItemClick(item) }
+                        )
                     }
                 }
             }
         }
-
-        // Bottom Export Actions (Exportar a PDF y Exportar a Excel)
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .testTag("barra_exportar"),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp,
-            shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Botón "Exportar a PDF"
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Exportando historial a PDF... Documento generado con éxito.")
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("btn_exportar_pdf"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = InacapRed,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PictureAsPdf,
-                        contentDescription = "Exportar a PDF",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Exportar a PDF",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                }
-
-                // Botón "Exportar a Excel"
-                OutlinedButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Exportando historial a Excel (.xlsx)... Planilla descargada con éxito.")
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("btn_exportar_excel"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = SecondaryCharcoal
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.TableChart,
-                        contentDescription = "Exportar a Excel",
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Exportar a Excel",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                }
-            }
-        }
-
-        // Snackbar Host for export notifications
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 76.dp)
-        )
     }
 }
 
 @Composable
 fun HistorialCardItem(
     item: HistorialItem,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -462,7 +349,8 @@ fun HistorialCardItem(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier
@@ -505,6 +393,49 @@ fun HistorialCardItem(
                         color = InacapRed,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
+                }
+            }
+
+            // Sync Status Badge: "✓ Sincronizado" (fondo verde) o "⏳ Pendiente de sincronizar" (fondo naranja)
+            if (item.sincronizado) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = SyncSuccessContainer,
+                    modifier = Modifier
+                        .border(1.dp, SyncSuccessBorder, RoundedCornerShape(6.dp))
+                        .testTag("tag_sincronizado_${item.id}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✓ Sincronizado",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SyncSuccessText
+                        )
+                    }
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = SyncPendingContainer,
+                    modifier = Modifier
+                        .border(1.dp, SyncPendingBorder, RoundedCornerShape(6.dp))
+                        .testTag("tag_pendiente_sincronizar_${item.id}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⏳ Pendiente de sincronizar",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SyncPendingText
+                        )
+                    }
                 }
             }
 
@@ -592,7 +523,7 @@ fun HistorialCardItem(
 
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = SuccessGreenContainer
+                    color = if (item.asistentesFirmados == item.numeroAsistentes && item.numeroAsistentes > 0) SuccessGreenContainer else InacapRed.copy(alpha = 0.1f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -600,15 +531,15 @@ fun HistorialCardItem(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = "Completado",
-                            tint = SuccessGreen,
+                            contentDescription = "Firmas",
+                            tint = if (item.asistentesFirmados == item.numeroAsistentes && item.numeroAsistentes > 0) SuccessGreen else InacapRed,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "100% Firmas",
+                            text = "${item.asistentesFirmados}/${item.numeroAsistentes} Firmas",
                             style = MaterialTheme.typography.labelSmall,
-                            color = SuccessGreen,
+                            color = if (item.asistentesFirmados == item.numeroAsistentes && item.numeroAsistentes > 0) SuccessGreen else InacapRed,
                             fontWeight = FontWeight.Bold
                         )
                     }

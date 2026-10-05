@@ -15,6 +15,14 @@ val SuccessGreenDark = Color(0xFF15803D)
 val SuccessGreenContainer = Color(0xFFDCFCE7)
 val OnSuccessGreenContainer = Color(0xFF14532D)
 
+// Sync State Colors (Sincronizado / Pendiente de sincronizar)
+val SyncPendingContainer = Color(0xFFFEF3C7) // Suave naranja/ámbar
+val SyncPendingText = Color(0xFFB45309)      // Naranja oscuro legible
+val SyncPendingBorder = Color(0xFFFDE68A)
+val SyncSuccessContainer = Color(0xFFDCFCE7) // Suave verde
+val SyncSuccessText = Color(0xFF15803D)      // Verde oscuro
+val SyncSuccessBorder = Color(0xFFBBF7D0)
+
 // Neutrals & Backgrounds (Fondo gris claro)
 val LightGrayBackground = Color(0xFFF4F5F8)
 val SurfaceCard = Color(0xFFFFFFFF)

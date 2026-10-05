@@ -4,9 +4,7 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,18 +25,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Draw
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.HistoryEdu
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -55,10 +52,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -74,54 +69,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.model.Asistente
 import com.example.ui.theme.InacapRed
 import com.example.ui.theme.InacapRedContainer
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.SuccessGreenContainer
 import com.example.ui.theme.TextSecondary
+import com.example.viewmodel.CharlasViewModel
 import java.util.Calendar
 import java.util.Locale
 
 @Composable
 fun RegistroScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: CharlasViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
-    // Form fields state
-    var docente by rememberSaveable { mutableStateOf("") }
-    var asignatura by rememberSaveable { mutableStateOf("") }
-    var seccion by rememberSaveable { mutableStateOf("") }
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
+    val isCerrado = formState.isCerrado
 
-    // Date & Time states with sensible defaults from calendar
-    val calendar = remember { Calendar.getInstance() }
-    val initialYear = calendar.get(Calendar.YEAR)
-    val initialMonth = calendar.get(Calendar.MONTH)
-    val initialDay = calendar.get(Calendar.DAY_OF_MONTH)
-    val initialHour = calendar.get(Calendar.HOUR_OF_DAY)
-    val initialMinute = calendar.get(Calendar.MINUTE)
-
-    var fecha by rememberSaveable {
-        mutableStateOf(
-            String.format(Locale.getDefault(), "%02d/%02d/%d", initialDay, initialMonth + 1, initialYear)
-        )
-    }
-    var horaInicio by rememberSaveable {
-        mutableStateOf(
-            String.format(Locale.getDefault(), "%02d:%02d", initialHour, (initialMinute / 5) * 5)
-        )
-    }
-    var horaTermino by rememberSaveable {
-        mutableStateOf(
-            String.format(Locale.getDefault(), "%02d:%02d", (initialHour + 1) % 24, (initialMinute / 5) * 5)
-        )
-    }
-
-    var tema by rememberSaveable { mutableStateOf("") }
-
-    // Tipo de charla radio buttons
     val tiposCharla = remember {
         listOf(
             "Charla 5 minutos",
@@ -131,27 +101,19 @@ fun RegistroScreen(
             "Reinstrucción"
         )
     }
-    var tipoCharlaSeleccionado by rememberSaveable { mutableStateOf(tiposCharla[0]) }
-
-    // Attendance list starting with 3 empty rows
-    val asistentes = remember {
-        mutableStateListOf(
-            Asistente(),
-            Asistente(),
-            Asistente()
-        )
-    }
 
     // Native DatePickerDialog
+    val calendar = remember { Calendar.getInstance() }
     val datePickerDialog = remember {
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
-                fecha = String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
+                val nuevaFecha = String.format(Locale.getDefault(), "%02d/%02d/%d", dayOfMonth, month + 1, year)
+                viewModel.updateFecha(nuevaFecha)
             },
-            initialYear,
-            initialMonth,
-            initialDay
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
         )
     }
 
@@ -160,10 +122,11 @@ fun RegistroScreen(
         TimePickerDialog(
             context,
             { _, hourOfDay, minute ->
-                horaInicio = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                val nuevaHora = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                viewModel.updateHoraInicio(nuevaHora)
             },
-            initialHour,
-            initialMinute,
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
             true
         )
     }
@@ -173,15 +136,15 @@ fun RegistroScreen(
         TimePickerDialog(
             context,
             { _, hourOfDay, minute ->
-                horaTermino = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                val nuevaHora = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                viewModel.updateHoraTermino(nuevaHora)
             },
-            (initialHour + 1) % 24,
-            initialMinute,
+            (calendar.get(Calendar.HOUR_OF_DAY) + 1) % 24,
+            calendar.get(Calendar.MINUTE),
             true
         )
     }
 
-    // Summary dialog state
     var showSummaryDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -192,6 +155,56 @@ fun RegistroScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Banner Registro Cerrado
+        AnimatedVisibility(visible = isCerrado) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("banner_registro_cerrado"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = InacapRedContainer.copy(alpha = 0.6f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(42.dp),
+                        shape = CircleShape,
+                        color = InacapRed
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Bloqueado",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Registro cerrado — ya no se puede modificar",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = InacapRed
+                        )
+                        Text(
+                            text = "Los datos han sido incorporados al Historial.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
         // Top Banner / Header Card
         Card(
             modifier = Modifier
@@ -224,7 +237,7 @@ fun RegistroScreen(
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Registro de Charla",
                         style = MaterialTheme.typography.titleLarge,
@@ -233,10 +246,37 @@ fun RegistroScreen(
                         modifier = Modifier.testTag("registro_title")
                     )
                     Text(
-                        text = "Prevención de Riesgos y Seguridad",
+                        text = if (isCerrado) "Estado: Cerrado y Guardado" else "Prevención de Riesgos y Seguridad",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isCerrado) InacapRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isCerrado) FontWeight.SemiBold else FontWeight.Normal
                     )
+                }
+
+                if (isCerrado) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = InacapRed.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = InacapRed,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Bloqueado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InacapRed,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -258,17 +298,31 @@ fun RegistroScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(
-                    text = "Datos de la Charla",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = InacapRed
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Datos de la Charla",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InacapRed
+                    )
+                    if (isCerrado) {
+                        Text(
+                            text = "Solo lectura",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
 
                 // Docente
                 OutlinedTextField(
-                    value = docente,
-                    onValueChange = { docente = it },
+                    value = formState.docente,
+                    onValueChange = { viewModel.updateDocente(it) },
+                    enabled = !isCerrado,
                     label = { Text("Docente / Expositor") },
                     placeholder = { Text("Ej: Carlos Silva Rojas") },
                     singleLine = true,
@@ -290,8 +344,9 @@ fun RegistroScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
-                        value = asignatura,
-                        onValueChange = { asignatura = it },
+                        value = formState.asignatura,
+                        onValueChange = { viewModel.updateAsignatura(it) },
+                        enabled = !isCerrado,
                         label = { Text("Asignatura") },
                         placeholder = { Text("Ej: Taller Mecánico") },
                         singleLine = true,
@@ -307,8 +362,9 @@ fun RegistroScreen(
                     )
 
                     OutlinedTextField(
-                        value = seccion,
-                        onValueChange = { seccion = it },
+                        value = formState.seccion,
+                        onValueChange = { viewModel.updateSeccion(it) },
+                        enabled = !isCerrado,
                         label = { Text("Sección") },
                         placeholder = { Text("Ej: 002D") },
                         singleLine = true,
@@ -329,10 +385,13 @@ fun RegistroScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { datePickerDialog.show() }
+                        .then(
+                            if (!isCerrado) Modifier.clickable { datePickerDialog.show() }
+                            else Modifier
+                        )
                 ) {
                     OutlinedTextField(
-                        value = fecha,
+                        value = formState.fecha,
                         onValueChange = {},
                         readOnly = true,
                         enabled = false,
@@ -341,14 +400,14 @@ fun RegistroScreen(
                             Icon(
                                 imageVector = Icons.Default.CalendarToday,
                                 contentDescription = "Seleccionar fecha",
-                                tint = InacapRed
+                                tint = if (!isCerrado) InacapRed else TextSecondary
                             )
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
                             disabledBorderColor = MaterialTheme.colorScheme.outline,
                             disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = InacapRed
+                            disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -367,10 +426,13 @@ fun RegistroScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { timePickerInicio.show() }
+                            .then(
+                                if (!isCerrado) Modifier.clickable { timePickerInicio.show() }
+                                else Modifier
+                            )
                     ) {
                         OutlinedTextField(
-                            value = horaInicio,
+                            value = formState.horaInicio,
                             onValueChange = {},
                             readOnly = true,
                             enabled = false,
@@ -379,14 +441,14 @@ fun RegistroScreen(
                                 Icon(
                                     imageVector = Icons.Default.AccessTime,
                                     contentDescription = "Seleccionar hora inicio",
-                                    tint = InacapRed
+                                    tint = if (!isCerrado) InacapRed else TextSecondary
                                 )
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
                                 disabledBorderColor = MaterialTheme.colorScheme.outline,
                                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = InacapRed
+                                disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -400,10 +462,13 @@ fun RegistroScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { timePickerTermino.show() }
+                            .then(
+                                if (!isCerrado) Modifier.clickable { timePickerTermino.show() }
+                                else Modifier
+                            )
                     ) {
                         OutlinedTextField(
-                            value = horaTermino,
+                            value = formState.horaTermino,
                             onValueChange = {},
                             readOnly = true,
                             enabled = false,
@@ -412,14 +477,14 @@ fun RegistroScreen(
                                 Icon(
                                     imageVector = Icons.Default.AccessTime,
                                     contentDescription = "Seleccionar hora término",
-                                    tint = InacapRed
+                                    tint = if (!isCerrado) InacapRed else TextSecondary
                                 )
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledTextColor = MaterialTheme.colorScheme.onSurface,
                                 disabledBorderColor = MaterialTheme.colorScheme.outline,
                                 disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledTrailingIconColor = InacapRed
+                                disabledTrailingIconColor = if (!isCerrado) InacapRed else TextSecondary
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -431,8 +496,9 @@ fun RegistroScreen(
 
                 // Tema
                 OutlinedTextField(
-                    value = tema,
-                    onValueChange = { tema = it },
+                    value = formState.tema,
+                    onValueChange = { viewModel.updateTema(it) },
+                    enabled = !isCerrado,
                     label = { Text("Tema de la Charla") },
                     placeholder = { Text("Ej: Uso obligatorio de EPP y bloqueo de fuentes energéticas") },
                     minLines = 2,
@@ -474,7 +540,7 @@ fun RegistroScreen(
                     color = InacapRed
                 )
                 Text(
-                    text = "Seleccione la modalidad correspondiente:",
+                    text = "Modalidad seleccionada:",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -482,15 +548,19 @@ fun RegistroScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 tiposCharla.forEach { tipo ->
-                    val isSelected = tipoCharlaSeleccionado == tipo
+                    val isSelected = formState.tipoCharla == tipo
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .selectable(
-                                selected = isSelected,
-                                onClick = { tipoCharlaSeleccionado = tipo },
-                                role = Role.RadioButton
+                            .then(
+                                if (!isCerrado) {
+                                    Modifier.selectable(
+                                        selected = isSelected,
+                                        onClick = { viewModel.updateTipoCharla(tipo) },
+                                        role = Role.RadioButton
+                                    )
+                                } else Modifier
                             )
                             .background(
                                 if (isSelected) InacapRed.copy(alpha = 0.08f) else Color.Transparent
@@ -500,7 +570,8 @@ fun RegistroScreen(
                     ) {
                         RadioButton(
                             selected = isSelected,
-                            onClick = null,
+                            onClick = if (!isCerrado) { { viewModel.updateTipoCharla(tipo) } } else null,
+                            enabled = !isCerrado,
                             colors = RadioButtonDefaults.colors(
                                 selectedColor = InacapRed,
                                 unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -535,7 +606,7 @@ fun RegistroScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                val firmadosCount = asistentes.count { it.firmado }
+                val firmadosCount = formState.asistentes.count { it.firmado }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -550,7 +621,7 @@ fun RegistroScreen(
                             color = InacapRed
                         )
                         Text(
-                            text = "$firmadosCount de ${asistentes.size} firmados",
+                            text = "$firmadosCount de ${formState.asistentes.size} firmados",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (firmadosCount > 0) SuccessGreen else TextSecondary,
                             fontWeight = FontWeight.SemiBold
@@ -562,7 +633,7 @@ fun RegistroScreen(
                         color = if (firmadosCount > 0) SuccessGreenContainer else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
-                            text = if (firmadosCount == asistentes.size && asistentes.isNotEmpty()) "Completa" else "$firmadosCount/${asistentes.size}",
+                            text = if (firmadosCount == formState.asistentes.size && formState.asistentes.isNotEmpty()) "Completa" else "$firmadosCount/${formState.asistentes.size}",
                             style = MaterialTheme.typography.labelMedium,
                             color = if (firmadosCount > 0) SuccessGreen else TextSecondary,
                             fontWeight = FontWeight.Bold,
@@ -574,19 +645,20 @@ fun RegistroScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Editable rows
-                asistentes.forEachIndexed { index, asistente ->
+                formState.asistentes.forEachIndexed { index, asistente ->
                     AsistenteRowItem(
                         numero = index + 1,
                         asistente = asistente,
+                        isReadOnly = isCerrado,
                         onUpdate = { updated ->
-                            asistentes[index] = updated
+                            viewModel.updateAsistente(index, updated)
                         },
-                        onDelete = if (asistentes.size > 1) {
-                            { asistentes.removeAt(index) }
+                        onDelete = if (!isCerrado && formState.asistentes.size > 1) {
+                            { viewModel.eliminarAsistente(index) }
                         } else null
                     )
 
-                    if (index < asistentes.lastIndex) {
+                    if (index < formState.asistentes.lastIndex) {
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                             modifier = Modifier.padding(vertical = 4.dp)
@@ -594,61 +666,96 @@ fun RegistroScreen(
                     }
                 }
 
-                // Botón "+ Agregar asistente"
-                OutlinedButton(
-                    onClick = {
-                        asistentes.add(Asistente())
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("btn_agregar_asistente"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = InacapRed
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Agregar asistente",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Agregar asistente",
-                        fontWeight = FontWeight.SemiBold
-                    )
+                // Botón "+ Agregar asistente" (solo si no está cerrado)
+                if (!isCerrado) {
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.agregarAsistente()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("btn_agregar_asistente"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = InacapRed
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Agregar asistente",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Agregar asistente",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
 
-        // Section 4: Botón "Guardar Registro"
-        Button(
-            onClick = {
-                showSummaryDialog = true
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp)
-                .testTag("btn_guardar_registro"),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = InacapRed,
-                contentColor = Color.White
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = "Guardar Registro",
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "Guardar Registro",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+        // Section 4: Action Buttons
+        if (isCerrado) {
+            // Botón "Nuevo registro" que limpia el formulario
+            Button(
+                onClick = {
+                    viewModel.nuevoRegistro()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("btn_nuevo_registro"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InacapRed,
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Nuevo registro",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Nuevo registro",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        } else {
+            // Botón "Guardar Registro"
+            Button(
+                onClick = {
+                    viewModel.guardarRegistro()
+                    showSummaryDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("btn_guardar_registro"),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InacapRed,
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = "Guardar Registro",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Guardar Registro",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -656,8 +763,8 @@ fun RegistroScreen(
 
     // Resumen Dialog
     if (showSummaryDialog) {
-        val totalAsistentes = asistentes.size
-        val firmados = asistentes.filter { it.firmado }
+        val totalAsistentes = formState.asistentes.size
+        val firmados = formState.asistentes.filter { it.firmado }
         val firmadosCount = firmados.size
 
         AlertDialog(
@@ -680,7 +787,7 @@ fun RegistroScreen(
             },
             title = {
                 Text(
-                    text = "Resumen de Registro",
+                    text = "Registro Guardado y Cerrado",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -707,8 +814,22 @@ fun RegistroScreen(
                         }
                     }
 
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = InacapRedContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "✓ Agregado al Historial de la app.\n✓ El formulario ha quedado bloqueado.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InacapRed,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+
                     Text(
-                        text = "Detalles de la sesión:",
+                        text = "Detalles de la sesión guardada:",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -723,48 +844,25 @@ fun RegistroScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = "• Docente: ${if (docente.isNotBlank()) docente else "Sin especificar"}",
+                            text = "• Docente: ${if (formState.docente.isNotBlank()) formState.docente else "Sin especificar"}",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "• Asignatura: ${if (asignatura.isNotBlank()) asignatura else "—"} (${if (seccion.isNotBlank()) seccion else "—"})",
+                            text = "• Asignatura: ${if (formState.asignatura.isNotBlank()) formState.asignatura else "—"} (${if (formState.seccion.isNotBlank()) formState.seccion else "—"})",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "• Fecha y Horario: $fecha ($horaInicio - $horaTermino)",
+                            text = "• Fecha y Horario: ${formState.fecha} (${formState.horaInicio} - ${formState.horaTermino})",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "• Tipo: $tipoCharlaSeleccionado",
+                            text = "• Tipo: ${formState.tipoCharla}",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "• Tema: ${if (tema.isNotBlank()) tema else "Sin tema registrado"}",
+                            text = "• Tema: ${if (formState.tema.isNotBlank()) formState.tema else "Sin tema registrado"}",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-
-                    if (firmados.isNotEmpty()) {
-                        Text(
-                            text = "Firmantes confirmados:",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                            modifier = Modifier.padding(start = 4.dp)
-                        ) {
-                            firmados.forEach { asis ->
-                                val name = if (asis.nombre.isNotBlank()) asis.nombre else "Asistente sin nombre"
-                                val rut = if (asis.rut.isNotBlank()) " (${asis.rut})" else ""
-                                Text(
-                                    text = "✓ $name$rut",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = SuccessGreen,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
                     }
                 }
             },
@@ -786,6 +884,7 @@ fun RegistroScreen(
 fun AsistenteRowItem(
     numero: Int,
     asistente: Asistente,
+    isReadOnly: Boolean = false,
     onUpdate: (Asistente) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
@@ -835,7 +934,7 @@ fun AsistenteRowItem(
                     )
                 }
 
-                if (onDelete != null) {
+                if (onDelete != null && !isReadOnly) {
                     IconButton(
                         onClick = onDelete,
                         modifier = Modifier.size(28.dp)
@@ -854,6 +953,7 @@ fun AsistenteRowItem(
             OutlinedTextField(
                 value = asistente.nombre,
                 onValueChange = { onUpdate(asistente.copy(nombre = it)) },
+                enabled = !isReadOnly,
                 label = { Text("Nombre") },
                 placeholder = { Text("Nombre y Apellido") },
                 singleLine = true,
@@ -878,6 +978,7 @@ fun AsistenteRowItem(
                 OutlinedTextField(
                     value = asistente.rut,
                     onValueChange = { onUpdate(asistente.copy(rut = it)) },
+                    enabled = !isReadOnly,
                     label = { Text("RUT") },
                     placeholder = { Text("12.345.678-9") },
                     singleLine = true,
@@ -892,13 +993,18 @@ fun AsistenteRowItem(
                         .testTag("input_rut_$numero")
                 )
 
-                // Botón de firma (al tocarlo, simula una firma cambiando a un ícono de check verde con el texto "Firmado")
+                // Botón de firma
                 if (asistente.firmado) {
                     Button(
-                        onClick = { onUpdate(asistente.copy(firmado = false)) },
+                        onClick = {
+                            if (!isReadOnly) onUpdate(asistente.copy(firmado = false))
+                        },
+                        enabled = !isReadOnly,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = SuccessGreen,
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            disabledContainerColor = SuccessGreen.copy(alpha = 0.7f),
+                            disabledContentColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
@@ -925,7 +1031,10 @@ fun AsistenteRowItem(
                     }
                 } else {
                     OutlinedButton(
-                        onClick = { onUpdate(asistente.copy(firmado = true)) },
+                        onClick = {
+                            if (!isReadOnly) onUpdate(asistente.copy(firmado = true))
+                        },
+                        enabled = !isReadOnly,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = InacapRed
                         ),
@@ -959,6 +1068,7 @@ fun AsistenteRowItem(
             OutlinedTextField(
                 value = asistente.observacion,
                 onValueChange = { onUpdate(asistente.copy(observacion = it)) },
+                enabled = !isReadOnly,
                 label = { Text("Observación") },
                 placeholder = { Text("Ej: Sin novedades / EPP completo") },
                 singleLine = true,

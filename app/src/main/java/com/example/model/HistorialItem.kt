@@ -12,5 +12,7 @@ data class HistorialItem(
     val numeroAsistentes: Int,
     val asistentesFirmados: Int,
     val tema: String = "",
-    val personas: List<String> = emptyList()
+    val personas: List<String> = emptyList(),
+    val asistentes: List<Asistente> = emptyList(),
+    val sincronizado: Boolean = true
 )
