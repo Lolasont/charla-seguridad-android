@@ -399,6 +399,57 @@ class ArtViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun actualizarArtExistente(
+        artId: String,
+        trabajoActividad: String,
+        especialidad: String,
+        fecha: String,
+        docente: String,
+        lugar: String,
+        tipoActividad: String,
+        nivelTecnico: String,
+        equipoApoyo: String,
+        equipoApoyoOtros: String,
+        epp: String,
+        eppOtros: String,
+        condicionesAmbientales: String,
+        condicionesAmbientalesOtros: String,
+        charlaSeguridadInicial: Boolean,
+        responsableFirmado: Boolean,
+        etapas: List<EtapaTrabajoEntity>,
+        personal: List<PersonalEjecutanteEntity>
+    ) {
+        val artEntity = ArtEntity(
+            id = artId,
+            trabajoActividad = trabajoActividad.trim().ifBlank { "Actividad sin especificar" },
+            especialidad = especialidad.trim().ifBlank { "Sin especialidad" },
+            fecha = fecha.ifBlank { getFormattedDate() },
+            docente = docente.trim().ifBlank { "Docente no especificado" },
+            lugar = lugar.trim().ifBlank { "Taller general" },
+            tipoActividad = tipoActividad,
+            nivelTecnico = nivelTecnico,
+            equipoApoyo = equipoApoyo,
+            equipoApoyoOtros = equipoApoyoOtros.trim(),
+            epp = epp,
+            eppOtros = eppOtros.trim(),
+            comandoVoz = "",
+            condicionesAmbientales = condicionesAmbientales,
+            condicionesAmbientalesOtros = condicionesAmbientalesOtros.trim(),
+            charlaSeguridadInicial = charlaSeguridadInicial,
+            charlaVinculadaId = null,
+            charlaVinculadaFecha = null,
+            charlaVinculadaTema = null,
+            responsableFirmado = responsableFirmado,
+            cerrada = true,
+            sincronizado = false,
+            timestamp = System.currentTimeMillis()
+        )
+
+        viewModelScope.launch {
+            repository.guardarArtCompleto(artEntity, etapas, personal)
+        }
+    }
+
     fun nuevoArt() {
         _formState.value = createInitialFormState()
     }

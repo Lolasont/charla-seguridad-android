@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
@@ -69,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.entities.ArtConEtapas
 import com.example.model.HistorialItem
+import com.example.util.export.ExportHelper
 import com.example.ui.theme.InacapRed
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.SuccessGreenContainer
@@ -135,7 +138,8 @@ fun HistorialScreen(
     } else if (selectedArt != null) {
         DetalleASAA(
             artConEtapas = selectedArt,
-            onVolver = { selectedArtId = null }
+            onVolver = { selectedArtId = null },
+            artViewModel = artViewModel
         )
     } else {
         Box(
@@ -192,14 +196,14 @@ fun HistorialScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "ART (${artItems.size})",
+                                        text = "ASAA (${artItems.size})",
                                         fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium
                                     )
                                 }
                             },
                             selectedContentColor = InacapRed,
                             unselectedContentColor = TextSecondary,
-                            modifier = Modifier.testTag("tab_selector_art")
+                            modifier = Modifier.testTag("tab_selector_asaa")
                         )
                     }
                 }
@@ -581,7 +585,7 @@ private fun HistorialCharlasView(
                     .weight(1f)
                     .testTag("lista_historial_charlas"),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(
                     items = filteredList,
@@ -647,7 +651,7 @@ private fun HistorialArtView(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar ART",
+                            contentDescription = "Buscar ASAA",
                             tint = InacapRed
                         )
                     },
@@ -671,7 +675,7 @@ private fun HistorialArtView(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("input_buscar_historial_art")
+                        .testTag("input_buscar_historial_asaa")
                 )
             }
         }
@@ -684,7 +688,7 @@ private fun HistorialArtView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${filteredList.size} ART registrado(s)",
+                text = "${filteredList.size} ASAA registrado(s)",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 fontWeight = FontWeight.Medium
@@ -724,13 +728,13 @@ private fun HistorialArtView(
                         }
                     }
                     Text(
-                        text = "No se encontraron registros de ART",
+                        text = "No se encontraron registros de ASAA",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Completa el formulario en la pestaña ART para registrar nuevas evaluaciones.",
+                        text = "Completa el formulario en la pestaña ASAA para registrar nuevas evaluaciones.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                         modifier = Modifier.padding(horizontal = 24.dp)
@@ -744,7 +748,7 @@ private fun HistorialArtView(
                     .weight(1f)
                     .testTag("lista_historial_art"),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(
                     items = filteredList,
@@ -769,11 +773,15 @@ fun HistorialCardItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isExporting by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("card_historial_${item.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -964,6 +972,48 @@ fun HistorialCardItem(
                     }
                 }
             }
+
+            // Export Button (Only interactive control allowed on history card)
+            Button(
+                onClick = {
+                    if (isExporting) return@Button
+                    coroutineScope.launch {
+                        try {
+                            isExporting = true
+                            ExportHelper.exportarCharlaPdf(context, item)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Error al exportar PDF: ${e.localizedMessage ?: "Error desconocido"}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            isExporting = false
+                        }
+                    }
+                },
+                enabled = !isExporting,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .testTag("btn_exportar_pdf_charla_${item.id}"),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InacapRed,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PictureAsPdf,
+                    contentDescription = "Exportar PDF",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (isExporting) "Exportando..." else "Exportar PDF",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
@@ -979,12 +1029,15 @@ fun HistorialArtCardItem(
 ) {
     val art = artConEtapas.art
     val etapasCount = artConEtapas.etapas.size
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isExporting by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("card_historial_art_${art.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -1034,7 +1087,7 @@ fun HistorialArtCardItem(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "ART",
+                            text = "ASAA",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = InacapRed
@@ -1086,12 +1139,19 @@ fun HistorialArtCardItem(
                 }
             }
 
-            // Actividad
+            // Trabajo o Actividad
             Text(
-                text = art.trabajoActividad,
+                text = "Trabajo o Actividad: ${art.trabajoActividad}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Especialidad
+            Text(
+                text = "Especialidad: ${art.especialidad}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             // Docente
@@ -1104,24 +1164,24 @@ fun HistorialArtCardItem(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = art.docente,
+                    text = "Docente: ${art.docente}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            // Especialidad y Lugar
+            // Lugar
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.School,
-                    contentDescription = "Especialidad",
+                    contentDescription = "Lugar",
                     tint = TextSecondary,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "${art.especialidad} • ${art.lugar}",
+                    text = "Lugar: ${art.lugar}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1182,6 +1242,48 @@ fun HistorialArtCardItem(
                         )
                     }
                 }
+            }
+
+            // Export Button (Only interactive control allowed on history card)
+            Button(
+                onClick = {
+                    if (isExporting) return@Button
+                    coroutineScope.launch {
+                        try {
+                            isExporting = true
+                            ExportHelper.exportarAsaaPdf(context, artConEtapas)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Error al exportar PDF: ${e.localizedMessage ?: "Error desconocido"}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            isExporting = false
+                        }
+                    }
+                },
+                enabled = !isExporting,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .testTag("btn_exportar_pdf_art_${art.id}"),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = InacapRed,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PictureAsPdf,
+                    contentDescription = "Exportar PDF",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (isExporting) "Exportando..." else "Exportar PDF",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

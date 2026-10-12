@@ -47,10 +47,14 @@ import com.example.ui.theme.SyncPendingBorder
 import com.example.ui.theme.SyncPendingContainer
 import com.example.ui.theme.SyncPendingText
 import com.example.ui.theme.SyncSuccessBorder
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.local.entities.EtapaTrabajoEntity
+import com.example.data.local.entities.PersonalEjecutanteEntity
 import com.example.ui.theme.SyncSuccessContainer
 import com.example.ui.theme.SyncSuccessText
 import com.example.ui.theme.TextSecondary
 import com.example.util.export.ExportHelper
+import com.example.viewmodel.ArtViewModel
 import kotlinx.coroutines.launch
 
 private fun sanitizeTag(text: String): String {
@@ -66,7 +70,8 @@ private fun sanitizeTag(text: String): String {
 fun DetalleASAA(
     artConEtapas: ArtConEtapas,
     onVolver: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    artViewModel: ArtViewModel = viewModel()
 ) {
     BackHandler {
         onVolver()
@@ -1378,6 +1383,111 @@ fun DetalleASAA(
                 }
             }
 
+            // ── GUARDAR CAMBIOS EN DETALLE ASAA ──
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("card_detalle_asaa_guardar"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Guardar Cambios del ASAA",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InacapRed
+                    )
+                    Text(
+                        text = "Guarda cualquier actualización realizada en los campos, checkboxes, etapas o firmas del registro.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    Button(
+                        onClick = {
+                            val equipoStr = equiposSeleccionados.filter { it.value }.keys.joinToString("|")
+                            val eppStr = eppSeleccionados.filter { it.value }.keys.joinToString("|")
+                            val condStr = condicionesSeleccionadas.filter { it.value }.keys.joinToString("|")
+
+                            val etapasEntities = etapasNombres.mapIndexed { index, nombre ->
+                                EtapaTrabajoEntity(
+                                    id = etapasOriginales.getOrNull(index)?.id ?: java.util.UUID.randomUUID().toString(),
+                                    artId = art.id,
+                                    etapa = nombre.trim(),
+                                    riesgoAsociado = etapasRiesgos.getOrNull(index)?.trim() ?: "",
+                                    medidaControl = etapasControles.getOrNull(index)?.trim() ?: "",
+                                    orden = index + 1
+                                )
+                            }.filter { it.etapa.isNotBlank() || it.riesgoAsociado.isNotBlank() || it.medidaControl.isNotBlank() }
+
+                            val personalEntities = personalNombres.mapIndexed { index, nombre ->
+                                PersonalEjecutanteEntity(
+                                    id = personalOriginal.getOrNull(index)?.id ?: java.util.UUID.randomUUID().toString(),
+                                    artId = art.id,
+                                    nombre = nombre.trim(),
+                                    rut = personalOriginal.getOrNull(index)?.rut ?: "",
+                                    firmado = personalFirmados.getOrNull(index) ?: false,
+                                    horaFirma = personalOriginal.getOrNull(index)?.horaFirma ?: "",
+                                    orden = index + 1
+                                )
+                            }.filter { it.nombre.isNotBlank() }
+
+                            artViewModel.actualizarArtExistente(
+                                artId = art.id,
+                                trabajoActividad = trabajoActividad,
+                                especialidad = especialidad,
+                                fecha = fecha,
+                                docente = docenteExpositor,
+                                lugar = lugar,
+                                tipoActividad = tipoActividad,
+                                nivelTecnico = nivelTecnicoSeleccionado,
+                                equipoApoyo = equipoStr,
+                                equipoApoyoOtros = equipoApoyoOtros,
+                                epp = eppStr,
+                                eppOtros = eppOtros,
+                                condicionesAmbientales = condStr,
+                                condicionesAmbientalesOtros = condicionesOtros,
+                                charlaSeguridadInicial = charlaSeguridadSi,
+                                responsableFirmado = responsableFirmado,
+                                etapas = etapasEntities,
+                                personal = personalEntities
+                            )
+
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Cambios guardados con éxito en ASAA")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("btn_guardar_cambios_detalle_asaa"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = InacapRed,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Guardar Cambios",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Guardar Cambios",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
             // ── EXPORTACIÓN (PDF / Excel) ──
             Card(
                 modifier = Modifier
@@ -1415,7 +1525,7 @@ fun DetalleASAA(
                                 coroutineScope.launch {
                                     try {
                                         isExporting = true
-                                        ExportHelper.exportarArtPdf(context, artConEtapas)
+                                        ExportHelper.exportarAsaaPdf(context, artConEtapas)
                                     } catch (e: Exception) {
                                         snackbarHostState.showSnackbar("Error al generar PDF: ${e.localizedMessage ?: "Error desconocido"}")
                                     } finally {
@@ -1453,7 +1563,7 @@ fun DetalleASAA(
                                 coroutineScope.launch {
                                     try {
                                         isExporting = true
-                                        ExportHelper.exportarArtCsv(context, artConEtapas)
+                                        ExportHelper.exportarAsaaCsv(context, artConEtapas)
                                     } catch (e: Exception) {
                                         snackbarHostState.showSnackbar("Error al generar Excel: ${e.localizedMessage ?: "Error desconocido"}")
                                     } finally {

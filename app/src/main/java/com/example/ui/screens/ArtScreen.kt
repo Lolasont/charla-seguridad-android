@@ -188,7 +188,7 @@ fun ArtScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "ART cerrado — ya no se puede modificar",
+                                text = "ASAA cerrado — ya no se puede modificar",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = InacapRed
@@ -232,7 +232,7 @@ fun ArtScreen(
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Security,
-                                    contentDescription = "ART",
+                                    contentDescription = "ASAA",
                                     tint = InacapRed,
                                     modifier = Modifier.size(26.dp)
                                 )
@@ -241,14 +241,14 @@ fun ArtScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "ART",
+                                text = "ASAA",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.testTag("art_title")
                             )
                             Text(
-                                text = if (isCerrado) "Estado: Cerrado y Guardado" else "Análisis de Riesgo de la Tarea",
+                                text = if (isCerrado) "Estado: Cerrado y Guardado" else "Análisis Seguro de la Actividad Académica",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isCerrado) InacapRed else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (isCerrado) FontWeight.SemiBold else FontWeight.Normal
@@ -282,23 +282,23 @@ fun ArtScreen(
                         }
                     }
 
-                    // Botón "Duplicar ART anterior" (disponible cuando no está cerrado)
+                    // Botón "Duplicar ASAA anterior" (disponible cuando no está cerrado)
                     if (!isCerrado) {
                         OutlinedButton(
                             onClick = {
                                 val duplicado = viewModel.duplicarArtAnterior()
                                 coroutineScope.launch {
                                     if (duplicado) {
-                                        snackbarHostState.showSnackbar("Campos del último ART copiados con éxito (fecha actualizada a hoy)")
+                                        snackbarHostState.showSnackbar("Campos del último ASAA copiados con éxito (fecha actualizada a hoy)")
                                     } else {
-                                        snackbarHostState.showSnackbar("No hay un ART previo registrado para duplicar")
+                                        snackbarHostState.showSnackbar("No hay un ASAA previo registrado para duplicar")
                                     }
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
-                                .testTag("btn_duplicar_art_anterior"),
+                                .testTag("btn_duplicar_asaa_anterior"),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = InacapRed
@@ -311,7 +311,7 @@ fun ArtScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Duplicar ART anterior",
+                                text = "Duplicar ASAA anterior",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp
                             )
@@ -1237,14 +1237,14 @@ fun ArtScreen(
                 }
             }
 
-            // Section 8: Action Buttons (Guardar ART o Nuevo ART)
+            // Section 8: Action Buttons (Guardar ASAA o Nuevo ASAA)
             if (isCerrado) {
                 Button(
                     onClick = { viewModel.nuevoArt() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .testTag("btn_nuevo_art"),
+                        .testTag("btn_nuevo_asaa"),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = InacapRed,
@@ -1254,12 +1254,12 @@ fun ArtScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Nuevo ART",
+                        contentDescription = "Nuevo ASAA",
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Nuevo ART",
+                        text = "Nuevo ASAA",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1273,7 +1273,7 @@ fun ArtScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
-                        .testTag("btn_guardar_art"),
+                        .testTag("btn_guardar_asaa"),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = InacapRed,
@@ -1283,12 +1283,12 @@ fun ArtScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = "Guardar ART",
+                        contentDescription = "Guardar ASAA",
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Guardar ART",
+                        text = "Guardar ASAA",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1395,7 +1395,7 @@ fun ArtScreen(
         )
     }
 
-    // Summary Dialog for ART
+    // Summary Dialog for ASAA
     if (showSummaryDialog) {
         val totalEtapas = formState.etapas.size
         val totalEjecutantes = formState.personalEjecutante.count { it.nombre.isNotBlank() || it.rut.isNotBlank() }
@@ -1411,7 +1411,7 @@ fun ArtScreen(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (formState.responsableFirmado) Icons.Default.CheckCircle else Icons.Outlined.Info,
-                            contentDescription = "Resumen ART",
+                            contentDescription = "Resumen ASAA",
                             tint = if (formState.responsableFirmado) SuccessGreen else InacapRed,
                             modifier = Modifier.size(30.dp)
                         )
@@ -1420,7 +1420,7 @@ fun ArtScreen(
             },
             title = {
                 Text(
-                    text = "ART Guardado y Cerrado",
+                    text = "ASAA Guardado y Cerrado",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )

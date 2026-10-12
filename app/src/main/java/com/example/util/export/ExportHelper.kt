@@ -200,9 +200,8 @@ object ExportHelper {
         file
     }
 
-    // =========================================================================
-    // ART - EXCEL (CSV)
-    // =========================================================================
+    suspend fun exportarAsaaCsv(context: Context, artConEtapas: ArtConEtapas): File = exportarArtCsv(context, artConEtapas)
+
     suspend fun exportarArtCsv(context: Context, artConEtapas: ArtConEtapas): File = withContext(Dispatchers.IO) {
         val fileName = "art_${getTimestampString()}.csv"
         val file = File(getExportsDir(context), fileName)
@@ -214,7 +213,7 @@ object ExportHelper {
             fos.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
             val sb = StringBuilder()
 
-            sb.append("ANÁLISIS DE RIESGOS DEL TRABAJO (ART);;;;\n")
+            sb.append("ANÁLISIS SEGURO DE LA ACTIVIDAD ACADÉMICA (ASAA);;;;\n")
             sb.append("INACAP Sede San Pedro de la Paz;;;;\n\n")
 
             // 1. DATOS GENERALES
@@ -610,9 +609,8 @@ object ExportHelper {
         file
     }
 
-    // =========================================================================
-    // ART - PDF (A4 Horizontal: 842 x 595 puntos - Oficial INACAP Completo)
-    // =========================================================================
+    suspend fun exportarAsaaPdf(context: Context, artConEtapas: ArtConEtapas): File = exportarArtPdf(context, artConEtapas)
+
     suspend fun exportarArtPdf(context: Context, artConEtapas: ArtConEtapas): File = withContext(Dispatchers.IO) {
         val fileName = "art_${getTimestampString()}.pdf"
         val file = File(getExportsDir(context), fileName)
@@ -787,9 +785,9 @@ object ExportHelper {
 
             val titleCenterX = marginLeft + leftBoxW + (usableWidth - leftBoxW) / 2f
             val headerTitleText = if (isFirstPage) {
-                "ANÁLISIS DE RIESGOS DEL TRABAJO (ART)"
+                "ANÁLISIS SEGURO DE LA ACTIVIDAD ACADÉMICA (ASAA)"
             } else {
-                "ANÁLISIS DE RIESGOS DEL TRABAJO (ART) - CONTINUACIÓN"
+                "ANÁLISIS SEGURO DE LA ACTIVIDAD ACADÉMICA (ASAA) - CONTINUACIÓN"
             }
             c.drawText(headerTitleText, titleCenterX, y + 17.5f, titlePaint)
 

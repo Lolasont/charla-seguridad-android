@@ -22,10 +22,10 @@ enum class NavScreen(
         testTag = "nav_registro"
     ),
     ART(
-        title = "ART",
+        title = "ASAA",
         selectedIcon = Icons.Filled.Security,
         unselectedIcon = Icons.Outlined.Security,
-        testTag = "nav_art"
+        testTag = "nav_asaa"
     ),
     HISTORIAL(
         title = "Historial",
