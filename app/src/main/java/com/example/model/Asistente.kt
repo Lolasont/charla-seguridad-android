@@ -10,5 +10,6 @@ data class Asistente(
     var horaFirma: String = "",
     var observacion: String = "",
     var esExterno: Boolean = false,
-    var procedencia: String = ""
+    var procedencia: String = "",
+    var far: Boolean = false
 )

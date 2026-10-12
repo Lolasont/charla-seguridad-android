@@ -133,7 +133,7 @@ fun HistorialScreen(
             onVolver = { selectedCharlaId = null }
         )
     } else if (selectedArt != null) {
-        DetalleArtScreen(
+        DetalleASAA(
             artConEtapas = selectedArt,
             onVolver = { selectedArtId = null }
         )

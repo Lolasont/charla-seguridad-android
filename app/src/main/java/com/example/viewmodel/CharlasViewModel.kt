@@ -3,11 +3,14 @@ package com.example.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.example.InacapApp
 import com.example.data.local.entities.AsistenteEntity
 import com.example.data.local.entities.CharlaEntity
 import com.example.model.Asistente
 import com.example.model.HistorialItem
+import com.opencsv.CSVReader
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +20,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.apache.poi.ss.usermodel.Cell
+import org.apache.poi.ss.usermodel.CellType
+import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
@@ -98,6 +108,9 @@ class CharlasViewModel(application: Application) : AndroidViewModel(application)
 
     private val _formState = MutableStateFlow(createInitialFormState())
     val formState: StateFlow<RegistroFormState> = _formState.asStateFlow()
+
+    private val _asistentes = MutableStateFlow<List<Asistente>>(_formState.value.asistentes)
+    val asistentes: StateFlow<List<Asistente>> = _asistentes.asStateFlow()
 
     fun toggleConnection(connected: Boolean, onSyncComplete: (Int) -> Unit = {}) {
         _isOnline.value = connected
@@ -220,6 +233,168 @@ class CharlasViewModel(application: Application) : AndroidViewModel(application)
                 list.removeAt(index)
             }
             current.copy(asistentes = list)
+        }
+        _asistentes.update { current ->
+            val list = current.toMutableList()
+            if (index in list.indices) {
+                list.removeAt(index)
+            }
+            list
+        }
+    }
+
+    fun toggleFar(index: Int, value: Boolean) {
+        if (_formState.value.isCerrado) return
+        _asistentes.update { current ->
+            val list = current.toMutableList()
+            if (index in list.indices) {
+                list[index] = list[index].copy(far = value)
+            }
+            list
+        }
+        _formState.update { current ->
+            val list = current.asistentes.toMutableList()
+            if (index in list.indices) {
+                list[index] = list[index].copy(far = value)
+            }
+            current.copy(asistentes = list)
+        }
+    }
+
+    suspend fun cargarAsistentesDesdeArchivo(uri: Uri): Result<Unit> = withContext(Dispatchers.IO) {
+        val contentResolver = getApplication<Application>().contentResolver
+        try {
+            val detectedMime = contentResolver.getType(uri) ?: ""
+            val uriPath = uri.path?.lowercase() ?: ""
+            val isCsv = detectedMime.contains("csv") || uriPath.endsWith(".csv")
+            val isXlsx = detectedMime.contains("spreadsheetml") || 
+                         detectedMime.contains("excel") || 
+                         uriPath.endsWith(".xlsx")
+
+            val listaImportada = mutableListOf<Asistente>()
+
+            when {
+                isCsv -> {
+                    contentResolver.openInputStream(uri)?.use { inputStream ->
+                        CSVReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
+                            var row: Array<String>? = reader.readNext()
+                            var isFirstRow = true
+
+                            while (row != null) {
+                                if (row.isNotEmpty()) {
+                                    val firstCol = row.getOrNull(0)?.trim() ?: ""
+                                    val secondCol = row.getOrNull(1)?.trim() ?: ""
+                                    if (isFirstRow && (firstCol.contains("nombre", ignoreCase = true) || 
+                                                       firstCol.contains("rut", ignoreCase = true) ||
+                                                       secondCol.contains("rut", ignoreCase = true))) {
+                                        isFirstRow = false
+                                        row = reader.readNext()
+                                        continue
+                                    }
+                                    isFirstRow = false
+
+                                    val nombre = row.getOrNull(0)?.trim() ?: ""
+                                    val rut = row.getOrNull(1)?.trim() ?: ""
+                                    val firmaRaw = row.getOrNull(2)?.trim()
+                                    val firma = if (!firmaRaw.isNullOrBlank()) firmaRaw else null
+                                    val far = row.getOrNull(3)?.trim()?.toBooleanStrictOrNull() ?: false
+
+                                    if (nombre.isNotBlank() || rut.isNotBlank()) {
+                                        listaImportada.add(
+                                            Asistente(
+                                                nombre = nombre,
+                                                rut = rut,
+                                                firmado = firma != null,
+                                                horaFirma = if (firma != null) "08:30" else "",
+                                                far = far
+                                            )
+                                        )
+                                    }
+                                }
+                                row = reader.readNext()
+                            }
+                        }
+                    } ?: return@withContext Result.failure(Exception("No se pudo abrir el archivo CSV."))
+                }
+
+                isXlsx -> {
+                    contentResolver.openInputStream(uri)?.use { inputStream: InputStream ->
+                        XSSFWorkbook(inputStream).use { workbook ->
+                            val sheet = workbook.getSheetAt(0)
+                                ?: return@withContext Result.failure(Exception("El archivo Excel no contiene hojas."))
+
+                            var isFirstRow = true
+                            for (row: Row in sheet) {
+                                val firstCell = getCellStringValue(row.getCell(0)).trim()
+                                val secondCell = getCellStringValue(row.getCell(1)).trim()
+
+                                if (isFirstRow && (firstCell.contains("nombre", ignoreCase = true) || 
+                                                   firstCell.contains("rut", ignoreCase = true) ||
+                                                   secondCell.contains("rut", ignoreCase = true))) {
+                                    isFirstRow = false
+                                    continue
+                                }
+                                isFirstRow = false
+
+                                val nombre = getCellStringValue(row.getCell(0)).trim()
+                                val rut = getCellStringValue(row.getCell(1)).trim()
+                                val firmaRaw = getCellStringValue(row.getCell(2)).trim()
+                                val firma = if (firmaRaw.isNotBlank()) firmaRaw else null
+                                val far = getCellStringValue(row.getCell(3)).trim().toBooleanStrictOrNull() ?: false
+
+                                if (nombre.isNotBlank() || rut.isNotBlank()) {
+                                    listaImportada.add(
+                                        Asistente(
+                                            nombre = nombre,
+                                            rut = rut,
+                                            firmado = firma != null,
+                                            horaFirma = if (firma != null) "08:30" else "",
+                                            far = far
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    } ?: return@withContext Result.failure(Exception("No se pudo abrir el archivo Excel (.xlsx)."))
+                }
+
+                else -> {
+                    return@withContext Result.failure(
+                        IllegalArgumentException("Formato no compatible. Por favor seleccione un archivo .csv o .xlsx.")
+                    )
+                }
+            }
+
+            if (listaImportada.isEmpty()) {
+                return@withContext Result.failure(Exception("El archivo no contiene filas válidas de asistentes."))
+            }
+
+            _asistentes.value = listaImportada
+            _formState.update { it.copy(asistentes = listaImportada) }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun getCellStringValue(cell: Cell?): String {
+        if (cell == null) return ""
+        return when (cell.cellType) {
+            CellType.STRING -> cell.stringCellValue
+            CellType.NUMERIC -> {
+                val num = cell.numericCellValue
+                if (num == num.toLong().toDouble()) num.toLong().toString() else num.toString()
+            }
+            CellType.BOOLEAN -> cell.booleanCellValue.toString()
+            CellType.FORMULA -> {
+                try {
+                    cell.stringCellValue
+                } catch (_: Exception) {
+                    cell.numericCellValue.toString()
+                }
+            }
+            else -> ""
         }
     }
 

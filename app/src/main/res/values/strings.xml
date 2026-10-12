@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Charlas INACAP</string>
+    <string name="title_asaa_detail">Análisis Seguro de la Actividad Académica (ASAA)</string>
+    <string name="title_art_detail">Análisis Seguro de la Actividad Académica (ASAA)</string>
+    <string name="asaa_header_title">Análisis Seguro de la Actividad Académica (ASAA)</string>
+    <string name="nav_asaa">ASAA</string>
 </resources>
