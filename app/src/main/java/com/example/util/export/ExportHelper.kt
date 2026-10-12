@@ -81,7 +81,6 @@ object ExportHelper {
                         lines.add(currentLine)
                         currentLine = ""
                     }
-                    // If a single word is wider than maxWidth, break it using breakText
                     if (paint.measureText(word) > maxWidth) {
                         var remaining = word
                         while (remaining.isNotEmpty()) {
@@ -117,6 +116,38 @@ object ExportHelper {
         lines.forEachIndexed { idx, line ->
             canvas.drawText(line, x, startY + idx * lineSpacing, paint)
         }
+    }
+
+    private fun formatRiesgoConNumero(riesgo: String): String {
+        val clean = riesgo.trim()
+        val map = mapOf(
+            "Choque eléctrico" to "1 Choque eléctrico",
+            "Arco eléctrico" to "2 Arco eléctrico",
+            "Incendio" to "3 Incendio",
+            "Ruido" to "4 Ruido",
+            "Explosión" to "5 Explosión",
+            "Corte" to "6 Corte",
+            "Tropiezos" to "7 Tropiezos",
+            "Contacto con partes activas" to "8 Contacto con partes activas",
+            "Quemaduras" to "9 Quemaduras",
+            "Fallas en aislamiento" to "10 Fallas en aislamiento",
+            "Equipos defectuosos" to "11 Equipos defectuosos",
+            "Sobrecargas" to "12 Sobrecargas",
+            "Exposición al polvo" to "13 Exposición al polvo",
+            "Desniveles" to "14 Desniveles",
+            "Caída de materiales" to "15 Caída de materiales",
+            "Trabajos en altura" to "16 Trabajos en altura",
+            "Intoxicación" to "17 Intoxicación",
+            "Radiación electromagnética" to "18 Radiación electromagnética",
+            "Caída igual o distinto nivel" to "19 Caída igual o distinto nivel",
+            "Proyección de partículas" to "20 Proyección de partículas",
+            "Espacio confinado" to "21 Espacio confinado",
+            "Golpeado por/contra/con" to "22 Golpeado por/contra/con",
+            "Sustancias tóxicas" to "23 Sustancias tóxicas",
+            "Ergonómico" to "24 Ergonómico",
+            "Radiación láser" to "25 Radiación láser"
+        )
+        return map[clean] ?: clean
     }
 
     // =========================================================================
@@ -177,28 +208,91 @@ object ExportHelper {
         val file = File(getExportsDir(context), fileName)
         val art = artConEtapas.art
         val etapas = artConEtapas.etapas.sortedBy { it.orden }
+        val personal = artConEtapas.personalEjecutante.sortedBy { it.orden }
 
         FileOutputStream(file).use { fos ->
             fos.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
             val sb = StringBuilder()
 
-            sb.append("ANÁLISIS DE RIESGOS DEL TRABAJO (ART);;;\n")
-            sb.append("INACAP Sede San Pedro de la Paz;;;\n\n")
+            sb.append("ANÁLISIS DE RIESGOS DEL TRABAJO (ART);;;;\n")
+            sb.append("INACAP Sede San Pedro de la Paz;;;;\n\n")
+
+            // a) DATOS GENERALES
+            sb.append("DATOS GENERALES;;;;\n")
             sb.append("Trabajo o Actividad;").append(escapeCsv(art.trabajoActividad)).append("\n")
             sb.append("Especialidad;").append(escapeCsv(art.especialidad)).append("\n")
             sb.append("Fecha;").append(escapeCsv(art.fecha)).append("\n")
+            sb.append("Tipo de Actividad;").append(escapeCsv(art.tipoActividad)).append("\n")
             sb.append("Docente;").append(escapeCsv(art.docente)).append("\n")
-            sb.append("Lugar;").append(escapeCsv(art.lugar)).append("\n")
-            sb.append("Responsable de Trabajos;").append(escapeCsv(if (art.responsableFirmado) "Firmado" else "Pendiente")).append("\n\n")
+            sb.append("Sala / Taller / Laboratorio / Terreno;").append(escapeCsv(art.lugar)).append("\n")
+            sb.append("Nivel Técnico;").append(escapeCsv(art.nivelTecnico)).append("\n")
+            sb.append("Charla de Seguridad Inicial;").append(if (art.charlaSeguridadInicial) "Sí" else "No").append("\n")
+            val charlaVinculadaInfo = if (art.charlaVinculadaTema != null) "${art.charlaVinculadaFecha ?: ""} - ${art.charlaVinculadaTema}" else ""
+            sb.append("Charla Vinculada;").append(escapeCsv(charlaVinculadaInfo)).append("\n\n")
 
-            sb.append("Ítem;Etapas del trabajo;Riesgos asociados;Medidas de control de riesgos\n")
+            // b) RECURSOS, EPP Y CONDICIONES
+            sb.append("RECURSOS, EPP Y CONDICIONES;;;;\n")
+            val equipoApoyoStr = buildString {
+                if (art.equipoApoyo.isNotBlank()) append(art.equipoApoyo.replace("|", " | "))
+                if (art.equipoApoyoOtros.isNotBlank()) {
+                    if (isNotEmpty()) append(" | Otros: ") else append("Otros: ")
+                    append(art.equipoApoyoOtros)
+                }
+            }
+            sb.append("Equipo de Apoyo;").append(escapeCsv(equipoApoyoStr)).append("\n")
 
+            val eppStr = buildString {
+                if (art.epp.isNotBlank()) append(art.epp.replace("|", " | "))
+                if (art.eppOtros.isNotBlank()) {
+                    if (isNotEmpty()) append(" | Otros: ") else append("Otros: ")
+                    append(art.eppOtros)
+                }
+            }
+            sb.append("Equipo de Protección Personal;").append(escapeCsv(eppStr)).append("\n")
+            sb.append("Comando de Voz;").append(escapeCsv(art.comandoVoz.replace("|", " | "))).append("\n")
+
+            val condicionesStr = buildString {
+                if (art.condicionesAmbientales.isNotBlank()) append(art.condicionesAmbientales.replace("|", " | "))
+                if (art.condicionesAmbientalesOtros.isNotBlank()) {
+                    if (isNotEmpty()) append(" | Otros: ") else append("Otros: ")
+                    append(art.condicionesAmbientalesOtros)
+                }
+            }
+            sb.append("Condiciones Ambientales;").append(escapeCsv(condicionesStr)).append("\n\n")
+
+            // c) PERSONAL EJECUTANTE
+            sb.append("PERSONAL EJECUTANTE;;;;\n")
+            sb.append("N°;Nombre;RUT;Firma;Hora Firma\n")
+            if (personal.isEmpty()) {
+                sb.append(";;;;\n")
+            } else {
+                personal.forEachIndexed { idx, p ->
+                    val firmaEstado = if (p.firmado) "Firmado" else "Sin firma"
+                    sb.append("${idx + 1};")
+                        .append(escapeCsv(p.nombre)).append(";")
+                        .append(escapeCsv(p.rut)).append(";")
+                        .append(escapeCsv(firmaEstado)).append(";")
+                        .append(escapeCsv(p.horaFirma)).append("\n")
+                }
+            }
+            sb.append("\n")
+
+            // d) ETAPAS DEL TRABAJO
+            sb.append("ETAPAS DEL TRABAJO;;;;\n")
+            sb.append("Ítem;Etapa;Riesgo asociado;Medida de control\n")
             etapas.forEachIndexed { index, e ->
                 sb.append("${index + 1};")
                     .append(escapeCsv(e.etapa)).append(";")
-                    .append(escapeCsv(e.riesgoAsociado)).append(";")
+                    .append(escapeCsv(formatRiesgoConNumero(e.riesgoAsociado))).append(";")
                     .append(escapeCsv(e.medidaControl)).append("\n")
             }
+            sb.append("\n")
+
+            // e) CIERRE Y RESPONSABILIDAD
+            sb.append("CIERRE Y RESPONSABILIDAD;;;;\n")
+            sb.append("Responsable de Trabajos;").append(escapeCsv(art.docente)).append("\n")
+            sb.append("Firma;").append(if (art.responsableFirmado) "Firmado digitalmente" else "Pendiente").append("\n")
+            sb.append("Observaciones;\n")
 
             fos.write(sb.toString().toByteArray(Charsets.UTF_8))
         }
@@ -219,7 +313,7 @@ object ExportHelper {
         val pageHeight = 842
         val margin = 36f
         val maxContentY = pageHeight - margin - 15f
-        val footerH = 76f // Altura del bloque final Comentarios + Docente
+        val footerH = 76f
 
         val strokePaint = Paint().apply {
             color = Color.BLACK
@@ -271,7 +365,6 @@ object ExportHelper {
             }
         }
 
-        // Columnas de la tabla de asistencia
         val colNWidth = 24f
         val colNombreWidth = 195f
         val colRutWidth = 90f
@@ -290,7 +383,6 @@ object ExportHelper {
         var page = document.startPage(pageInfo)
         var canvas = page.canvas
 
-        // Función interna para dibujar el encabezado superior
         fun drawCharlaHeader(c: Canvas, isFirstPage: Boolean): Float {
             var y = margin
             val headerBoxHeight = 58f
@@ -318,7 +410,6 @@ object ExportHelper {
             y += headerBoxHeight + 8f
 
             if (isFirstPage) {
-                // Docente con word-wrap
                 val docenteLines = wrapText(item.docente, textPaint, pageWidth - 2 * margin - 75f)
                 val docenteH = maxOf(20f, maxOf(docenteLines.size, 1) * 11.5f + 7f)
                 c.drawRect(margin, y, pageWidth - margin, y + docenteH, strokePaint)
@@ -327,12 +418,10 @@ object ExportHelper {
 
                 y += docenteH
 
-                // Bloque Asignatura, Sección, Hora, Fecha y TEMA (dinámico) + TIPO DE CHARLA
                 val tipoCharlaWidth = 145f
                 val infoWidth = (pageWidth - 2 * margin) - tipoCharlaWidth
                 val splitX = margin + infoWidth
 
-                // Calcular líneas de Tema y Asignatura sin truncar
                 val temaLines = wrapText(item.tema, textPaint, infoWidth - 55f)
                 val temaH = maxOf(18f, maxOf(temaLines.size, 1) * 11.5f + 7f)
                 val blockHeight = 4 * 18f + temaH
@@ -340,37 +429,30 @@ object ExportHelper {
                 c.drawRect(margin, y, pageWidth - margin, y + blockHeight, strokePaint)
                 c.drawLine(splitX, y, splitX, y + blockHeight, strokePaint)
 
-                // Sub-filas de la izquierda
                 val rowH = 18f
                 for (i in 1..4) {
                     c.drawLine(margin, y + i * rowH, splitX, y + i * rowH, strokePaint)
                 }
 
-                // Asignatura
                 val asigLines = wrapText(item.asignatura, textPaint, infoWidth - 85f)
                 c.drawText("ASIGNATURA: ", margin + 6f, y + 13f, boldPaint)
                 drawLines(c, asigLines.take(1), margin + 80f, y + 13f, 11f, textPaint)
 
-                // Sección
                 c.drawText("SECCIÓN: ", margin + 6f, y + rowH + 13f, boldPaint)
                 c.drawText(item.seccion, margin + 80f, y + rowH + 13f, textPaint)
 
-                // Hora inicio / Hora término
                 c.drawText("HORA INICIO: ", margin + 6f, y + 2 * rowH + 13f, boldPaint)
                 c.drawText(if (item.fecha.isNotBlank()) "08:30" else "", margin + 75f, y + 2 * rowH + 13f, textPaint)
                 c.drawText("HORA TÉRMINO: ", margin + 140f, y + 2 * rowH + 13f, boldPaint)
                 c.drawText(if (item.fecha.isNotBlank()) "09:15" else "", margin + 225f, y + 2 * rowH + 13f, textPaint)
 
-                // Fecha
                 c.drawText("FECHA: ", margin + 6f, y + 3 * rowH + 13f, boldPaint)
                 c.drawText(item.fecha, margin + 80f, y + 3 * rowH + 13f, textPaint)
 
-                // Tema con altura dinámica
                 val temaY = y + 4 * rowH
                 c.drawText("TEMA: ", margin + 6f, temaY + 13f, boldPaint)
                 drawLines(c, temaLines, margin + 50f, temaY + 13f, 11.5f, textPaint)
 
-                // Lado Derecho: Tipos de Charla con casilleros
                 val tipoHeaderH = 18f
                 c.drawLine(splitX, y + tipoHeaderH, pageWidth - margin, y + tipoHeaderH, strokePaint)
                 val tipoTitleCenterX = splitX + tipoCharlaWidth / 2f
@@ -408,14 +490,12 @@ object ExportHelper {
                 y += blockHeight + 10f
             }
 
-            // Título de la Tabla de Asistencia
             val tableTitleH = 16f
             c.drawRect(margin, y, pageWidth - margin, y + tableTitleH, strokePaint)
             val tableCenterX = margin + (pageWidth - 2 * margin) / 2f
             c.drawText("ASISTENCIA", tableCenterX, y + 12f, headerPaint)
             y += tableTitleH
 
-            // Encabezado de Columnas
             val tableHeaderH = 16f
             c.drawRect(margin, y, xEnd, y + tableHeaderH, strokePaint)
             c.drawLine(xNombre, y, xNombre, y + tableHeaderH, strokePaint)
@@ -435,12 +515,10 @@ object ExportHelper {
 
         var currentY = drawCharlaHeader(canvas, isFirstPage = true)
 
-        // Dibujar asistentes con cálculo de altura dinámico y paginación
         for (i in listaAsistentes.indices) {
             val asistente = listaAsistentes[i]
             val isLast = (i == listaAsistentes.lastIndex)
 
-            // Nombre y Procedencia externa en segunda línea
             val nombreLines: List<String> = if (asistente.esExterno && asistente.procedencia.isNotBlank()) {
                 val l1 = wrapText(asistente.nombre, textPaint, colNombreWidth - 12f)
                 val l2 = wrapText("Externo · ${asistente.procedencia}", textPaint, colNombreWidth - 12f)
@@ -453,10 +531,8 @@ object ExportHelper {
             val maxLines = maxOf(nombreLines.size, obsLines.size, 1)
             val rowHeight = maxOf(18f, maxLines * 11.5f + 7f)
 
-            // Verificar si cabe en la página actual
             val neededHeight = rowHeight + (if (isLast) footerH + 10f else 0f)
             if (currentY + neededHeight > maxContentY) {
-                // Pie de página con número
                 canvas.drawText("Página $pageNumber", pageWidth - margin - 50f, pageHeight - margin / 2f, textPaint)
                 document.finishPage(page)
 
@@ -465,11 +541,9 @@ object ExportHelper {
                 page = document.startPage(pageInfo)
                 canvas = page.canvas
 
-                // Iniciar nueva página con encabezado repetido
                 currentY = drawCharlaHeader(canvas, isFirstPage = false)
             }
 
-            // Dibujar fila
             canvas.drawRect(margin, currentY, xEnd, currentY + rowHeight, strokePaint)
             canvas.drawLine(xNombre, currentY, xNombre, currentY + rowHeight, strokePaint)
             canvas.drawLine(xRut, currentY, xRut, currentY + rowHeight, strokePaint)
@@ -493,7 +567,6 @@ object ExportHelper {
 
         currentY += 12f
 
-        // Dibujar Bloque Final (Comentarios y Docente) en la última página
         if (currentY + footerH > maxContentY) {
             canvas.drawText("Página $pageNumber", pageWidth - margin - 50f, pageHeight - margin / 2f, textPaint)
             document.finishPage(page)
@@ -538,25 +611,27 @@ object ExportHelper {
     }
 
     // =========================================================================
-    // ART - PDF (A4 Horizontal: 842 x 595 puntos)
+    // ART - PDF (A4 Horizontal: 842 x 595 puntos - Oficial INACAP Completo)
     // =========================================================================
     suspend fun exportarArtPdf(context: Context, artConEtapas: ArtConEtapas): File = withContext(Dispatchers.IO) {
         val fileName = "art_${getTimestampString()}.pdf"
         val file = File(getExportsDir(context), fileName)
         val art = artConEtapas.art
         val etapas = artConEtapas.etapas.sortedBy { it.orden }
+        val personal = artConEtapas.personalEjecutante.sortedBy { it.orden }
 
         val document = PdfDocument()
         val pageWidth = 842
         val pageHeight = 595
-        val margin = 36f
-        val maxContentY = pageHeight - margin - 15f
-        val footerH = 75f
+        val marginLeft = 20f
+        val marginRight = 822f
+        val usableWidth = marginRight - marginLeft // 802f
+        val maxContentY = 560f
 
         val strokePaint = Paint().apply {
             color = Color.BLACK
             style = Paint.Style.STROKE
-            strokeWidth = 0.8f
+            strokeWidth = 0.5f
             isAntiAlias = true
         }
 
@@ -565,157 +640,503 @@ object ExportHelper {
             isAntiAlias = true
         }
 
-        val textPaint = Paint().apply {
+        val titlePaint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
-            textSize = 9f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+
+        val headerSectionPaint = Paint().apply {
+            color = Color.BLACK
+            isAntiAlias = true
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
         }
 
         val boldPaint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
-            textSize = 9.5f
+            textSize = 6.8f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
-        val titlePaint = Paint().apply {
+        val textPaint = Paint().apply {
             color = Color.BLACK
             isAntiAlias = true
-            textSize = 14f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
+            textSize = 6.2f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         }
 
-        // Dimensiones de columnas de la tabla ART
-        val colItemW = 42f
-        val colEtapaW = 230f
-        val colRiesgoW = 210f
-        val colControlW = (pageWidth - 2 * margin) - (colItemW + colEtapaW + colRiesgoW)
+        val smallTextPaint = Paint().apply {
+            color = Color.BLACK
+            isAntiAlias = true
+            textSize = 5.2f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        }
 
-        val xItem = margin
-        val xEtapa = xItem + colItemW
-        val xRiesgo = xEtapa + colEtapaW
-        val xControl = xRiesgo + colRiesgoW
-        val xEnd = pageWidth - margin
+        // Listas predefinidas del formulario oficial
+        val equipoApoyoCol1 = listOf(
+            "Red eléctrica trifásica",
+            "Red eléctrica monofásica",
+            "Fuentes de poder bajo y alto voltaje",
+            "Cable de Alimentación Eléctrica",
+            "Bornes de Conexión",
+            "Dispositivos de maniobra eléctrica",
+            "Tablero o Gabinete eléctrico",
+            "Cable Banana/Caimán",
+            "Transformador Eléctrico",
+            "Variador de Frecuencia",
+            "Partidor Suave",
+            "Temporizador"
+        )
+        val equipoApoyoCol2 = listOf(
+            "Motor eléctrico",
+            "Instrumento de medida",
+            "Herramientas mecánicas",
+            "Máquinas de presión neumática",
+            "Máquinas de presión hidráulica",
+            "Herramientas manuales de golpe",
+            "Taladro eléctrico",
+            "Pistola de Calor Industrial",
+            "Morsa de Banco Giratoria Con Yunque",
+            "Sierra Manual",
+            "Estación de Soldadura"
+        )
+
+        val eppCol1 = listOf(
+            "Guante dieléctrico",
+            "Guante de cabritilla",
+            "Guante Hy-Flex",
+            "Zapatos de Seguridad dieléctrico",
+            "Delantal Blanco",
+            "Antiparra de Seguridad",
+            "Casco dieléctrico",
+            "Chaleco Reflectante",
+            "Cubre Calzado"
+        )
+        val eppCol2 = listOf(
+            "Arnés de Seguridad con dos Colas",
+            "Absorbedor de caídas",
+            "Gorro legionario para casco",
+            "Protector Auditivo",
+            "Lápiz detector de voltaje",
+            "Protector Solar",
+            "Ropa de PVC"
+        )
+
+        val condicionesMatriz = listOf(
+            listOf("Falta de Luz", "Calor", "Radiación UV", "Materiales inflamables"),
+            listOf("Ruido", "Gases", "Vibraciones", "Superficies resbaladizas"),
+            listOf("Humedad", "Polvo/Humo", "Sin Ventilación")
+        )
+
+        val riesgosMatriz = listOf(
+            listOf("1 Choque eléctrico", "4 Ruido", "7 Tropiezos", "10 Fallas en aislamie", "13 Exposición al Polvo", "16 Trabajos en altura", "19 Caída igual o Distinto Nivel", "22 Golpeado Por/ Contra/ Con", "25 Radiación láser"),
+            listOf("2 Arco eléctrico", "5 Explosión", "8 Contacto con partes a", "11 Equipos defectuosos", "14 Desniveles", "17 Intoxicación", "20 Proyección de Partículas", "23 Sustancias tóxicas", "26 Otros"),
+            listOf("3 Incendio", "6 Corte", "9 Quemaduras", "12 Sobrecargas", "15 Caída de Materiales", "18 Radiación electromagnét", "21 Espacio confinado", "24 Ergonómico", "27 Otros")
+        )
+
+        val equiposSeleccionados = art.equipoApoyo.split("|").filter { it.isNotBlank() }.toSet()
+        val eppSeleccionados = art.epp.split("|").filter { it.isNotBlank() }.toSet()
+        val comandosSeleccionados = art.comandoVoz.split("|").filter { it.isNotBlank() }.toSet()
+        val condicionesSeleccionadas = art.condicionesAmbientales.split("|").filter { it.isNotBlank() }.toSet()
 
         var pageNumber = 1
         var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
         var page = document.startPage(pageInfo)
         var canvas = page.canvas
 
-        fun drawArtHeader(c: Canvas, isFirstPage: Boolean): Float {
-            var y = margin
+        fun drawCheckbox(c: Canvas, x: Float, y: Float, isChecked: Boolean, size: Float = 6f) {
+            c.drawRect(x, y, x + size, y + size, strokePaint)
+            if (isChecked) {
+                c.drawText("X", x + 1.2f, y + size - 1.2f, boldPaint)
+            }
+        }
 
-            val headerBoxHeight = 52f
-            c.drawRect(margin, y, pageWidth - margin, y + headerBoxHeight, strokePaint)
+        fun drawArtFullHeader(c: Canvas, isFirstPage: Boolean): Float {
+            var y = 16f
 
-            val logoWidth = 140f
-            c.drawLine(margin + logoWidth, y, margin + logoWidth, y + headerBoxHeight, strokePaint)
+            // 1. Encabezado principal
+            val headerBoxHeight = 32f
+            c.drawRect(marginLeft, y, marginRight, y + headerBoxHeight, strokePaint)
+            val logoWidth = 125f
+            c.drawLine(marginLeft + logoWidth, y, marginLeft + logoWidth, y + headerBoxHeight, strokePaint)
 
             fillPaint.color = Color.rgb(194, 0, 0)
-            c.drawRect(margin + 14f, y + 12f, margin + 24f, y + 22f, fillPaint)
+            c.drawRect(marginLeft + 10f, y + 8f, marginLeft + 18f, y + 16f, fillPaint)
             fillPaint.color = Color.BLACK
 
-            boldPaint.textSize = 13f
-            c.drawText("INACAP", margin + 28f, y + 22f, boldPaint)
-            boldPaint.textSize = 9.5f
+            boldPaint.textSize = 10f
+            c.drawText("INACAP", marginLeft + 22f, y + 16f, boldPaint)
+            boldPaint.textSize = 6.8f
 
-            textPaint.textSize = 7.5f
-            c.drawText("SAN PEDRO DE LA PAZ", margin + 14f, y + 36f, textPaint)
-            textPaint.textSize = 9f
+            textPaint.textSize = 6.2f
+            c.drawText("SAN PEDRO DE LA PAZ", marginLeft + 10f, y + 25f, textPaint)
 
-            val titleCenterX = margin + logoWidth + (pageWidth - margin - (margin + logoWidth)) / 2f
-            c.drawText("ANÁLISIS DE RIESGOS DEL TRABAJO (ART)", titleCenterX, y + 32f, titlePaint)
+            val titleCenterX = marginLeft + logoWidth + (usableWidth - logoWidth) / 2f
+            c.drawText("ANÁLISIS DE RIESGOS DEL TRABAJO (ART)", titleCenterX, y + 20f, titlePaint)
 
-            y += headerBoxHeight + 8f
+            y += headerBoxHeight + 3f
 
             if (isFirstPage) {
-                // Fila 1: Trabajo o Actividad, Especialidad, Fecha con word-wrap
-                val xCol2 = margin + 350f
-                val xCol3 = margin + 580f
+                // 2. Fila 1: TRABAJO O ACTIVIDAD / ESPECIALIDAD / FECHA / TIPO DE ACTIVIDAD
+                val row1Height = 15f
+                val xEsp = marginLeft + 290f
+                val xFec = marginLeft + 490f
+                val xTip = marginLeft + 610f
 
-                val trabajoLines = wrapText(art.trabajoActividad, textPaint, xCol2 - margin - 135f)
-                val espLines = wrapText(art.especialidad, textPaint, xCol3 - xCol2 - 90f)
-                val fechaLines = wrapText(art.fecha, textPaint, xEnd - xCol3 - 50f)
+                c.drawRect(marginLeft, y, marginRight, y + row1Height, strokePaint)
+                c.drawLine(xEsp, y, xEsp, y + row1Height, strokePaint)
+                c.drawLine(xFec, y, xFec, y + row1Height, strokePaint)
+                c.drawLine(xTip, y, xTip, y + row1Height, strokePaint)
 
-                val row1Lines = maxOf(trabajoLines.size, espLines.size, fechaLines.size, 1)
-                val row1Height = maxOf(22f, row1Lines * 11.5f + 8f)
+                c.drawText("TRABAJO O ACTIVIDAD:", marginLeft + 4f, y + 10.5f, boldPaint)
+                val actLines = wrapText(art.trabajoActividad, textPaint, xEsp - marginLeft - 100f)
+                c.drawText(actLines.firstOrNull() ?: "", marginLeft + 98f, y + 10.5f, textPaint)
 
-                c.drawRect(margin, y, xEnd, y + row1Height, strokePaint)
-                c.drawLine(xCol2, y, xCol2, y + row1Height, strokePaint)
-                c.drawLine(xCol3, y, xCol3, y + row1Height, strokePaint)
+                c.drawText("ESPECIALIDAD:", xEsp + 4f, y + 10.5f, boldPaint)
+                val espLines = wrapText(art.especialidad, textPaint, xFec - xEsp - 68f)
+                c.drawText(espLines.firstOrNull() ?: "", xEsp + 66f, y + 10.5f, textPaint)
 
-                c.drawText("TRABAJO O ACTIVIDAD:", margin + 6f, y + 14f, boldPaint)
-                drawLines(c, trabajoLines, margin + 130f, y + 14f, 11.5f, textPaint)
+                c.drawText("FECHA:", xFec + 4f, y + 10.5f, boldPaint)
+                c.drawText(art.fecha, xFec + 36f, y + 10.5f, textPaint)
 
-                c.drawText("ESPECIALIDAD:", xCol2 + 6f, y + 14f, boldPaint)
-                drawLines(c, espLines, xCol2 + 85f, y + 14f, 11.5f, textPaint)
+                c.drawText("TIPO DE ACTIVIDAD:", xTip + 4f, y + 10.5f, boldPaint)
+                val isTeorica = art.tipoActividad.contains("Teórica", ignoreCase = true)
+                val isPractica = art.tipoActividad.contains("Práctica", ignoreCase = true) || !isTeorica
 
-                c.drawText("FECHA:", xCol3 + 6f, y + 14f, boldPaint)
-                drawLines(c, fechaLines, xCol3 + 45f, y + 14f, 11.5f, textPaint)
+                c.drawText("TEÓRICA", xTip + 88f, y + 10.5f, textPaint)
+                drawCheckbox(c, xTip + 124f, y + 4.5f, isTeorica)
+                c.drawText("PRÁCTICA", xTip + 138f, y + 10.5f, textPaint)
+                drawCheckbox(c, xTip + 178f, y + 4.5f, isPractica)
 
                 y += row1Height
 
-                // Fila 2: Docente, Sala / Taller / Laboratorio con word-wrap
-                val xSplit2 = margin + 400f
-                val docenteLines = wrapText(art.docente, textPaint, xSplit2 - margin - 70f)
-                val lugarLines = wrapText(art.lugar, textPaint, xEnd - xSplit2 - 230f)
+                // 3. Fila 2: DOCENTE / SALA / TALLER / LABORATORIO / TERRENO
+                val row2Height = 15f
+                val xDocenteSplit = marginLeft + 420f
+                c.drawRect(marginLeft, y, marginRight, y + row2Height, strokePaint)
+                c.drawLine(xDocenteSplit, y, xDocenteSplit, y + row2Height, strokePaint)
 
-                val row2Lines = maxOf(docenteLines.size, lugarLines.size, 1)
-                val row2Height = maxOf(22f, row2Lines * 11.5f + 8f)
+                c.drawText("DOCENTE:", marginLeft + 4f, y + 10.5f, boldPaint)
+                val docLines = wrapText(art.docente, textPaint, xDocenteSplit - marginLeft - 55f)
+                c.drawText(docLines.firstOrNull() ?: "", marginLeft + 52f, y + 10.5f, textPaint)
 
-                c.drawRect(margin, y, xEnd, y + row2Height, strokePaint)
-                c.drawLine(xSplit2, y, xSplit2, y + row2Height, strokePaint)
+                c.drawText("SALA / TALLER / LABORATORIO / TERRENO:", xDocenteSplit + 4f, y + 10.5f, boldPaint)
+                val lugarLines = wrapText(art.lugar, textPaint, marginRight - xDocenteSplit - 170f)
+                c.drawText(lugarLines.firstOrNull() ?: "", xDocenteSplit + 168f, y + 10.5f, textPaint)
 
-                c.drawText("DOCENTE:", margin + 6f, y + 14f, boldPaint)
-                drawLines(c, docenteLines, margin + 65f, y + 14f, 11.5f, textPaint)
+                y += row2Height + 3f
 
-                c.drawText("SALA / TALLER / LABORATORIO / TERRENO:", xSplit2 + 6f, y + 14f, boldPaint)
-                drawLines(c, lugarLines, xSplit2 + 225f, y + 14f, 11.5f, textPaint)
+                // 4. Bloque de tres columnas (Equipo Apoyo / EPP / Personal Ejecutante)
+                val block3Height = 120f
+                val col1Width = 250f
+                val col2Width = 285f
+                val col3Width = usableWidth - col1Width - col2Width // 267f
 
-                y += row2Height + 10f
+                val xCol1 = marginLeft
+                val xCol2 = xCol1 + col1Width
+                val xCol3 = xCol2 + col2Width
+                val xColEnd = marginRight
+
+                c.drawRect(xCol1, y, xColEnd, y + block3Height, strokePaint)
+                c.drawLine(xCol2, y, xCol2, y + block3Height, strokePaint)
+                c.drawLine(xCol3, y, xCol3, y + block3Height, strokePaint)
+
+                // 4.1 Columna Izquierda: Equipo de Apoyo
+                val titleH = 11f
+                c.drawRect(xCol1, y, xCol2, y + titleH, strokePaint)
+                c.drawText("Equipo de Apoyo", xCol1 + col1Width / 2f, y + 8f, headerSectionPaint)
+
+                val subColW = col1Width / 2f
+                c.drawLine(xCol1 + subColW, y + titleH, xCol1 + subColW, y + block3Height, strokePaint)
+
+                val itemH = (block3Height - titleH) / 12f
+                for (row in 0 until 12) {
+                    val yRow = y + titleH + row * itemH
+                    if (row > 0) {
+                        c.drawLine(xCol1, yRow, xCol2, yRow, strokePaint)
+                    }
+
+                    // Subcol 1
+                    if (row < equipoApoyoCol1.size) {
+                        val item = equipoApoyoCol1[row]
+                        drawCheckbox(c, xCol1 + 2f, yRow + 1.5f, equiposSeleccionados.contains(item), size = 5.5f)
+                        c.drawText(item, xCol1 + 10f, yRow + 6.5f, textPaint)
+                    }
+
+                    // Subcol 2
+                    if (row < equipoApoyoCol2.size) {
+                        val item = equipoApoyoCol2[row]
+                        drawCheckbox(c, xCol1 + subColW + 2f, yRow + 1.5f, equiposSeleccionados.contains(item), size = 5.5f)
+                        c.drawText(item, xCol1 + subColW + 10f, yRow + 6.5f, textPaint)
+                    } else if (row == 11) {
+                        // Otros en la última fila
+                        val isOtrosChecked = art.equipoApoyoOtros.isNotBlank()
+                        drawCheckbox(c, xCol1 + subColW + 2f, yRow + 1.5f, isOtrosChecked, size = 5.5f)
+                        val otrosText = if (isOtrosChecked) "Otros: ${art.equipoApoyoOtros}" else "Otros:.................."
+                        c.drawText(otrosText, xCol1 + subColW + 10f, yRow + 6.5f, textPaint)
+                    }
+                }
+
+                // 4.2 Columna Centro: Nivel técnico + EPP
+                val nivelH = 20f
+                c.drawRect(xCol2, y, xCol3, y + nivelH, strokePaint)
+                c.drawText("Nivel técnico de la Actividad", xCol2 + col2Width / 2f, y + 8f, headerSectionPaint)
+
+                val nivelItemW = col2Width / 3f
+                c.drawLine(xCol2, y + 10f, xCol3, y + 10f, strokePaint)
+                c.drawLine(xCol2 + nivelItemW, y + 10f, xCol2 + nivelItemW, y + nivelH, strokePaint)
+                c.drawLine(xCol2 + 2 * nivelItemW, y + 10f, xCol2 + 2 * nivelItemW, y + nivelH, strokePaint)
+
+                val isInicial = art.nivelTecnico.contains("Inicial", ignoreCase = true)
+                val isIntermedio = art.nivelTecnico.contains("Intermedio", ignoreCase = true)
+                val isAvanzado = art.nivelTecnico.contains("Avanzado", ignoreCase = true)
+
+                c.drawText("Nivel Inicial", xCol2 + 4f, y + 17f, textPaint)
+                drawCheckbox(c, xCol2 + nivelItemW - 9f, y + 12f, isInicial, size = 5.5f)
+
+                c.drawText("Nivel Intermedio", xCol2 + nivelItemW + 4f, y + 17f, textPaint)
+                drawCheckbox(c, xCol2 + 2 * nivelItemW - 9f, y + 12f, isIntermedio, size = 5.5f)
+
+                c.drawText("Nivel Avanzado", xCol2 + 2 * nivelItemW + 4f, y + 17f, textPaint)
+                drawCheckbox(c, xCol3 - 9f, y + 12f, isAvanzado, size = 5.5f)
+
+                // EPP
+                val eppTop = y + nivelH
+                val eppTitleH = 10f
+                c.drawRect(xCol2, eppTop, xCol3, eppTop + eppTitleH, strokePaint)
+                c.drawText("Equipo de Protección Personal", xCol2 + col2Width / 2f, eppTop + 7.5f, headerSectionPaint)
+
+                val subColEppW = col2Width / 2f
+                c.drawLine(xCol2 + subColEppW, eppTop + eppTitleH, xCol2 + subColEppW, y + block3Height, strokePaint)
+
+                val eppItemH = (block3Height - nivelH - eppTitleH) / 9f
+                for (row in 0 until 9) {
+                    val yRow = eppTop + eppTitleH + row * eppItemH
+                    if (row > 0) {
+                        c.drawLine(xCol2, yRow, xCol3, yRow, strokePaint)
+                    }
+
+                    // EPP Col 1
+                    if (row < eppCol1.size) {
+                        val item = eppCol1[row]
+                        drawCheckbox(c, xCol2 + 2f, yRow + 1.5f, eppSeleccionados.contains(item), size = 5.5f)
+                        c.drawText(item, xCol2 + 10f, yRow + 6.5f, textPaint)
+                    }
+
+                    // EPP Col 2
+                    if (row < eppCol2.size) {
+                        val item = eppCol2[row]
+                        drawCheckbox(c, xCol2 + subColEppW + 2f, yRow + 1.5f, eppSeleccionados.contains(item), size = 5.5f)
+                        c.drawText(item, xCol2 + subColEppW + 10f, yRow + 6.5f, textPaint)
+                    } else if (row == 7) {
+                        val isOtrosChecked = art.eppOtros.isNotBlank()
+                        drawCheckbox(c, xCol2 + subColEppW + 2f, yRow + 1.5f, isOtrosChecked, size = 5.5f)
+                        val otrosText = if (isOtrosChecked) "Otros: ${art.eppOtros}" else "Otros:.................."
+                        c.drawText(otrosText, xCol2 + subColEppW + 10f, yRow + 6.5f, textPaint)
+                    } else if (row == 8) {
+                        c.drawText("Otros:..................", xCol2 + subColEppW + 10f, yRow + 6.5f, textPaint)
+                    }
+                }
+
+                // 4.3 Columna Derecha: Personal Ejecutante (13 filas)
+                val personalTitleH = 11f
+                val firmaColW = 55f
+                val xFirmaSplit = xColEnd - firmaColW
+
+                c.drawRect(xCol3, y, xColEnd, y + personalTitleH, strokePaint)
+                c.drawLine(xFirmaSplit, y, xFirmaSplit, y + block3Height, strokePaint)
+
+                c.drawText("Personal Ejecutante", xCol3 + (col3Width - firmaColW) / 2f, y + 8f, headerSectionPaint)
+                c.drawText("Firma", xFirmaSplit + firmaColW / 2f, y + 8f, headerSectionPaint)
+
+                val personalRowH = (block3Height - personalTitleH) / 13f
+                for (row in 0 until 13) {
+                    val yRow = y + personalTitleH + row * personalRowH
+                    if (row > 0) {
+                        c.drawLine(xCol3, yRow, xColEnd, yRow, strokePaint)
+                    }
+
+                    val num = row + 1
+                    c.drawText("$num", xCol3 + 2f, yRow + 6f, textPaint)
+
+                    val p = personal.getOrNull(row)
+                    if (p != null) {
+                        val pName = if (p.rut.isNotBlank()) "${p.nombre} (${p.rut})" else p.nombre
+                        val nameLines = wrapText(pName, textPaint, xFirmaSplit - xCol3 - 18f)
+                        c.drawText(nameLines.firstOrNull() ?: "", xCol3 + 14f, yRow + 6f, textPaint)
+
+                        if (p.firmado) {
+                            val fText = if (p.horaFirma.isNotBlank()) "Firmado ${p.horaFirma}" else "Firmado"
+                            c.drawText(fText, xFirmaSplit + 4f, yRow + 6f, textPaint)
+                        }
+                    }
+                }
+
+                y += block3Height + 3f
+
+                // 5. Fila de tres bloques: Comando de Voz / Condiciones Ambientales / Charla Inicial
+                val block3BHeight = 32f
+                val colCVWidth = 250f
+                val colCAWidth = 330f
+                val colCIWidth = usableWidth - colCVWidth - colCAWidth // 222f
+
+                val xCV = marginLeft
+                val xCA = xCV + colCVWidth
+                val xCI = xCA + colCAWidth
+
+                c.drawRect(xCV, y, xColEnd, y + block3BHeight, strokePaint)
+                c.drawLine(xCA, y, xCA, y + block3BHeight, strokePaint)
+                c.drawLine(xCI, y, xCI, y + block3BHeight, strokePaint)
+
+                // 5.1 Comando de Voz
+                val cvTitleH = 10f
+                c.drawRect(xCV, y, xCA, y + cvTitleH, strokePaint)
+                c.drawText("Comando de Voz", xCV + colCVWidth / 2f, y + 7.5f, headerSectionPaint)
+
+                val cvSubW = colCVWidth / 3f
+                c.drawLine(xCV + cvSubW, y + cvTitleH, xCV + cvSubW, y + block3BHeight, strokePaint)
+                c.drawLine(xCV + 2 * cvSubW, y + cvTitleH, xCV + 2 * cvSubW, y + block3BHeight, strokePaint)
+
+                val yCvContent = y + cvTitleH + 13f
+                c.drawText("Alto", xCV + 14f, yCvContent, boldPaint)
+                drawCheckbox(c, xCV + cvSubW - 14f, yCvContent - 6f, comandosSeleccionados.contains("Alto"), size = 6f)
+
+                c.drawText("Atención", xCV + cvSubW + 12f, yCvContent, boldPaint)
+                drawCheckbox(c, xCV + 2 * cvSubW - 14f, yCvContent - 6f, comandosSeleccionados.contains("Atención"), size = 6f)
+
+                c.drawText("Precaución", xCV + 2 * cvSubW + 10f, yCvContent, boldPaint)
+                drawCheckbox(c, xCA - 14f, yCvContent - 6f, comandosSeleccionados.contains("Precaución"), size = 6f)
+
+                // 5.2 Condiciones Ambientales
+                val caTitleH = 10f
+                c.drawRect(xCA, y, xCI, y + caTitleH, strokePaint)
+                c.drawText("Condiciones Ambientales", xCA + colCAWidth / 2f, y + 7.5f, headerSectionPaint)
+
+                val caColW = colCAWidth / 4f
+                val caRowH = (block3BHeight - caTitleH) / 3f
+
+                for (r in 0 until 3) {
+                    val yRow = y + caTitleH + r * caRowH
+                    if (r > 0) c.drawLine(xCA, yRow, xCI, yRow, strokePaint)
+
+                    val filaItems = condicionesMatriz.getOrNull(r) ?: emptyList()
+                    for (cIdx in 0 until 4) {
+                        val xCell = xCA + cIdx * caColW
+                        if (cIdx > 0 && r == 0) c.drawLine(xCell, y + caTitleH, xCell, y + block3BHeight, strokePaint)
+
+                        if (r == 2 && cIdx == 3) {
+                            val isOtrosChecked = art.condicionesAmbientalesOtros.isNotBlank()
+                            drawCheckbox(c, xCell + 2f, yRow + 1.2f, isOtrosChecked, size = 5f)
+                            val oText = if (isOtrosChecked) "Otros: ${art.condicionesAmbientalesOtros}" else "Otros:........"
+                            c.drawText(oText, xCell + 9f, yRow + 5.5f, smallTextPaint)
+                        } else if (cIdx < filaItems.size) {
+                            val itm = filaItems[cIdx]
+                            drawCheckbox(c, xCell + 2f, yRow + 1.2f, condicionesSeleccionadas.contains(itm), size = 5f)
+                            c.drawText(itm, xCell + 9f, yRow + 5.5f, smallTextPaint)
+                        }
+                    }
+                }
+
+                // 5.3 Charla de seguridad Inicial
+                val yCiText = y + 10f
+                c.drawText("Charla de seguridad Inicial", xCI + 10f, yCiText, boldPaint)
+
+                c.drawText("Si", xCI + 130f, yCiText, boldPaint)
+                drawCheckbox(c, xCI + 142f, yCiText - 6f, art.charlaSeguridadInicial, size = 6f)
+
+                c.drawText("No", xCI + 165f, yCiText, boldPaint)
+                drawCheckbox(c, xCI + 180f, yCiText - 6f, !art.charlaSeguridadInicial, size = 6f)
+
+                if (art.charlaVinculadaTema != null) {
+                    val vinculadaStr = "Charla vinculada: ${art.charlaVinculadaFecha ?: ""}, ${art.charlaVinculadaTema}"
+                    val vLines = wrapText(vinculadaStr, smallTextPaint, colCIWidth - 16f)
+                    drawLines(c, vLines.take(2), xCI + 10f, y + 20f, 6.5f, smallTextPaint)
+                }
+
+                y += block3BHeight + 3f
+
+                // 6. Recuadro RIESGOS ASOCIADOS (Catálogo en 9 columnas numeradas)
+                val riesgosH = 35f
+                c.drawRect(marginLeft, y, xColEnd, y + riesgosH, strokePaint)
+                val rTitleH = 9f
+                c.drawRect(marginLeft, y, xColEnd, y + rTitleH, strokePaint)
+                c.drawText("RIESGOS ASOCIADOS", marginLeft + usableWidth / 2f, y + 7f, headerSectionPaint)
+
+                val colRiesgoW = usableWidth / 9f
+                val rRowH = (riesgosH - rTitleH) / 3f
+
+                for (r in 0 until 3) {
+                    val yRow = y + rTitleH + r * rRowH
+                    val listaR = riesgosMatriz[r]
+                    for (col in 0 until 9) {
+                        val itemR = listaR[col]
+                        c.drawText(itemR, marginLeft + col * colRiesgoW + 3f, yRow + 6.5f, smallTextPaint)
+                    }
+                }
+
+                y += riesgosH + 4f
             }
 
-            // Encabezado de Tabla
-            val tableHeaderH = 18f
-            c.drawRect(margin, y, xEnd, y + tableHeaderH, strokePaint)
+            // 7. Encabezado de Tabla de Etapas
+            val tableHeaderH = 14f
+            val xItem = marginLeft
+            val xEtapa = xItem + 36f
+            val xRiesgo = xEtapa + 240f
+            val xControl = xRiesgo + 210f
+            val xEnd = marginRight
+
+            c.drawRect(marginLeft, y, xEnd, y + tableHeaderH, strokePaint)
             c.drawLine(xEtapa, y, xEtapa, y + tableHeaderH, strokePaint)
             c.drawLine(xRiesgo, y, xRiesgo, y + tableHeaderH, strokePaint)
             c.drawLine(xControl, y, xControl, y + tableHeaderH, strokePaint)
 
-            c.drawText("ÍTEM", xItem + 8f, y + 12.5f, boldPaint)
-            c.drawText("ETAPAS DEL TRABAJO", xEtapa + 8f, y + 12.5f, boldPaint)
-            c.drawText("RIESGOS ASOCIADOS", xRiesgo + 8f, y + 12.5f, boldPaint)
-            c.drawText("MEDIDAS DE CONTROL DE RIESGOS", xControl + 8f, y + 12.5f, boldPaint)
+            c.drawText("ÍTEM", xItem + 6f, y + 10f, boldPaint)
+            c.drawText("ETAPAS DEL TRABAJO", xEtapa + 6f, y + 10f, boldPaint)
+            c.drawText("RIESGOS ASOCIADOS", xRiesgo + 6f, y + 10f, boldPaint)
+            c.drawText("MEDIDAS DE CONTROL DE RIESGOS", xControl + 6f, y + 10f, boldPaint)
 
             y += tableHeaderH
             return y
         }
 
-        var currentY = drawArtHeader(canvas, isFirstPage = true)
+        var currentY = drawArtFullHeader(canvas, isFirstPage = true)
 
-        // Dibujar filas de etapas dinámicas
-        for (i in etapas.indices) {
-            val etapa = etapas[i]
-            val isLast = (i == etapas.lastIndex)
+        val xItem = marginLeft
+        val xEtapa = xItem + 36f
+        val xRiesgo = xEtapa + 240f
+        val xControl = xRiesgo + 210f
+        val xEnd = marginRight
 
-            val etapaLines = wrapText(etapa.etapa, textPaint, colEtapaW - 14f)
-            val riesgoLines = wrapText(etapa.riesgoAsociado, textPaint, colRiesgoW - 14f)
-            val controlLines = wrapText(etapa.medidaControl, textPaint, colControlW - 14f)
+        val colEtapaW = xRiesgo - xEtapa
+        val colRiesgoW = xControl - xRiesgo
+        val colControlW = xEnd - xControl
+
+        val etapasCount = maxOf(etapas.size, 6)
+        val footerBlockH = 46f // Responsable (15) + Observaciones (25) + Spacing (6)
+
+        for (i in 0 until etapasCount) {
+            val isLast = (i == etapasCount - 1)
+            val etapa = etapas.getOrNull(i)
+
+            val etapaLines = if (etapa != null) wrapText(etapa.etapa, textPaint, colEtapaW - 10f) else emptyList()
+            val riesgoFormat = if (etapa != null) formatRiesgoConNumero(etapa.riesgoAsociado) else ""
+            val riesgoLines = if (etapa != null) wrapText(riesgoFormat, textPaint, colRiesgoW - 10f) else emptyList()
+            val controlLines = if (etapa != null) wrapText(etapa.medidaControl, textPaint, colControlW - 10f) else emptyList()
 
             val maxLines = maxOf(etapaLines.size, riesgoLines.size, controlLines.size, 1)
-            val rowHeight = maxOf(30f, maxLines * 12f + 8f)
+            val rowHeight = maxOf(16f, maxLines * 8.5f + 5f)
 
-            // Paginación si no cabe
-            val neededHeight = rowHeight + (if (isLast) footerH + 10f else 0f)
+            val neededHeight = rowHeight + (if (isLast) footerBlockH + 10f else 0f)
             if (currentY + neededHeight > maxContentY) {
-                // Pie institucional
-                val footerY = pageHeight - margin / 2f
-                textPaint.textSize = 7.5f
-                canvas.drawText("Electricidad y Electrónica • Automatización y Robótica • Tecnologías de Información y Ciberseguridad", margin, footerY, textPaint)
-                canvas.drawText("Página $pageNumber", xEnd - 50f, footerY, textPaint)
-                textPaint.textSize = 9f
+                // Pie institucional de página
+                val footerY = pageHeight - 8f
+                canvas.drawText("Electricidad y Electrónica · Automatización y Robótica · Tecnologías de Información y Ciberseguridad", marginLeft, footerY, smallTextPaint)
+                canvas.drawText("Página $pageNumber", xEnd - 45f, footerY, smallTextPaint)
 
                 document.finishPage(page)
 
@@ -724,31 +1145,28 @@ object ExportHelper {
                 page = document.startPage(pageInfo)
                 canvas = page.canvas
 
-                currentY = drawArtHeader(canvas, isFirstPage = false)
+                currentY = drawArtFullHeader(canvas, isFirstPage = false)
             }
 
-            canvas.drawRect(margin, currentY, xEnd, currentY + rowHeight, strokePaint)
+            canvas.drawRect(marginLeft, currentY, xEnd, currentY + rowHeight, strokePaint)
             canvas.drawLine(xEtapa, currentY, xEtapa, currentY + rowHeight, strokePaint)
             canvas.drawLine(xRiesgo, currentY, xRiesgo, currentY + rowHeight, strokePaint)
             canvas.drawLine(xControl, currentY, xControl, currentY + rowHeight, strokePaint)
 
-            canvas.drawText("${i + 1}.", xItem + 12f, currentY + 14f, textPaint)
-            drawLines(canvas, etapaLines, xEtapa + 8f, currentY + 14f, 12f, textPaint)
-            drawLines(canvas, riesgoLines, xRiesgo + 8f, currentY + 14f, 12f, textPaint)
-            drawLines(canvas, controlLines, xControl + 8f, currentY + 14f, 12f, textPaint)
+            canvas.drawText("${i + 1}.", xItem + 6f, currentY + 10f, textPaint)
+            drawLines(canvas, etapaLines, xEtapa + 5f, currentY + 10f, 8.5f, textPaint)
+            drawLines(canvas, riesgoLines, xRiesgo + 5f, currentY + 10f, 8.5f, textPaint)
+            drawLines(canvas, controlLines, xControl + 5f, currentY + 10f, 8.5f, textPaint)
 
             currentY += rowHeight
         }
 
-        currentY += 10f
+        currentY += 4f
 
-        // Bloque Final (Responsable y Observaciones) en la última página
-        if (currentY + footerH > maxContentY) {
-            val footerY = pageHeight - margin / 2f
-            textPaint.textSize = 7.5f
-            canvas.drawText("Electricidad y Electrónica • Automatización y Robótica • Tecnologías de Información y Ciberseguridad", margin, footerY, textPaint)
-            canvas.drawText("Página $pageNumber", xEnd - 50f, footerY, textPaint)
-            textPaint.textSize = 9f
+        if (currentY + footerBlockH > maxContentY) {
+            val footerY = pageHeight - 8f
+            canvas.drawText("Electricidad y Electrónica · Automatización y Robótica · Tecnologías de Información y Ciberseguridad", marginLeft, footerY, smallTextPaint)
+            canvas.drawText("Página $pageNumber", xEnd - 45f, footerY, smallTextPaint)
 
             document.finishPage(page)
 
@@ -756,37 +1174,36 @@ object ExportHelper {
             pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
             page = document.startPage(pageInfo)
             canvas = page.canvas
-            currentY = margin + 20f
+            currentY = 20f
         }
 
-        // Responsable de Trabajos y Firma
-        val respH = 22f
-        val xRespSplit = margin + 500f
-        canvas.drawRect(margin, currentY, xEnd, currentY + respH, strokePaint)
-        canvas.drawLine(xRespSplit, currentY, xRespSplit, currentY + respH, strokePaint)
+        // 8. Fila RESPONSABLE DE TRABAJOS: y FIRMA:
+        val respH = 15f
+        val xFirmaResp = marginLeft + 540f
+        canvas.drawRect(marginLeft, currentY, xEnd, currentY + respH, strokePaint)
+        canvas.drawLine(xFirmaResp, currentY, xFirmaResp, currentY + respH, strokePaint)
 
-        canvas.drawText("RESPONSABLE DE TRABAJOS:", margin + 6f, currentY + 14f, boldPaint)
-        val respDocenteLines = wrapText(art.docente, textPaint, xRespSplit - margin - 180f)
-        drawLines(canvas, respDocenteLines.take(1), margin + 175f, currentY + 14f, 11f, textPaint)
+        canvas.drawText("RESPONSABLE DE TRABAJOS:", marginLeft + 4f, currentY + 10.5f, boldPaint)
+        val respLines = wrapText(art.docente, textPaint, xFirmaResp - marginLeft - 160f)
+        canvas.drawText(respLines.firstOrNull() ?: "", marginLeft + 155f, currentY + 10.5f, textPaint)
 
-        canvas.drawText("FIRMA:", xRespSplit + 6f, currentY + 14f, boldPaint)
-        val firmaRespText = if (art.responsableFirmado) "Firmado digitalmente" else "Pendiente"
-        canvas.drawText(firmaRespText, xRespSplit + 55f, currentY + 14f, textPaint)
+        canvas.drawText("FIRMA:", xFirmaResp + 4f, currentY + 10.5f, boldPaint)
+        val firmaRespText = if (art.responsableFirmado) "Firmado digitalmente" else ""
+        canvas.drawText(firmaRespText, xFirmaResp + 42f, currentY + 10.5f, textPaint)
 
-        currentY += respH + 8f
+        currentY += respH + 3f
 
-        // Observaciones
-        val obsH = 38f
-        canvas.drawRect(margin, currentY, xEnd, currentY + obsH, strokePaint)
-        canvas.drawText("OBSERVACIONES:", margin + 6f, currentY + 13f, boldPaint)
-        canvas.drawLine(margin + 6f, currentY + 23f, xEnd - 6f, currentY + 23f, strokePaint)
-        canvas.drawLine(margin + 6f, currentY + 33f, xEnd - 6f, currentY + 33f, strokePaint)
+        // 9. Recuadro OBSERVACIONES:
+        val obsH = 26f
+        canvas.drawRect(marginLeft, currentY, xEnd, currentY + obsH, strokePaint)
+        canvas.drawText("OBSERVACIONES:", marginLeft + 4f, currentY + 8f, boldPaint)
+        canvas.drawLine(marginLeft + 4f, currentY + 15f, xEnd - 4f, currentY + 15f, strokePaint)
+        canvas.drawLine(marginLeft + 4f, currentY + 22f, xEnd - 4f, currentY + 22f, strokePaint)
 
-        // Pie de página institucional
-        val footerY = pageHeight - margin / 2f
-        textPaint.textSize = 7.5f
-        canvas.drawText("Electricidad y Electrónica • Automatización y Robótica • Tecnologías de Información y Ciberseguridad", margin, footerY, textPaint)
-        canvas.drawText("Versión 1.0 — Sede San Pedro de la Paz (Página $pageNumber)", xEnd - 220f, footerY, textPaint)
+        // 10. Pie de página
+        val footerY = pageHeight - 8f
+        canvas.drawText("Electricidad y Electrónica · Automatización y Robótica · Tecnologías de Información y Ciberseguridad", marginLeft, footerY, smallTextPaint)
+        canvas.drawText("Versión 1.0 — Sede San Pedro de la Paz", xEnd - 150f, footerY, smallTextPaint)
 
         document.finishPage(page)
 
