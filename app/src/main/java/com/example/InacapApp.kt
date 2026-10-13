@@ -12,7 +12,7 @@ class InacapApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val database by lazy { AppDatabase.getDatabase(this) }
-    val repository by lazy { InacapRepository(database.charlaDao(), database.artDao()) }
+    val repository by lazy { InacapRepository(database.charlaDao(), database.asaaDao()) }
 
     override fun onCreate() {
         super.onCreate()

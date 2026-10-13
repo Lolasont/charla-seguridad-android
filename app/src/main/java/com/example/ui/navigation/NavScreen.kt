@@ -21,7 +21,7 @@ enum class NavScreen(
         unselectedIcon = Icons.Outlined.Assignment,
         testTag = "nav_registro"
     ),
-    ART(
+    ASAA(
         title = "ASAA",
         selectedIcon = Icons.Filled.Security,
         unselectedIcon = Icons.Outlined.Security,

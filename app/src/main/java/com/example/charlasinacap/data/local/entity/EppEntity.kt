@@ -1,0 +1,12 @@
+package com.example.charlasinacap.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "asaa_epp")
+data class EppEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    var asaaId: Long = 0L,
+    val nombre: String,
+    var seleccionado: Boolean = false
+)

@@ -1,13 +1,14 @@
 package com.example.data.repository
 
-import com.example.data.local.dao.ArtDao
+import com.example.data.local.dao.AsaaDao
 import com.example.data.local.dao.CharlaDao
-import com.example.data.local.entities.ArtConEtapas
-import com.example.data.local.entities.ArtEntity
+import com.example.data.local.entities.AsaaConEtapas
+import com.example.data.local.entities.AsaaEntity
 import com.example.data.local.entities.AsistenteEntity
 import com.example.data.local.entities.CharlaConAsistentes
 import com.example.data.local.entities.CharlaEntity
 import com.example.data.local.entities.EtapaTrabajoEntity
+import com.example.data.local.entities.PersonalEjecutanteEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -15,10 +16,10 @@ import java.util.UUID
 
 class InacapRepository(
     private val charlaDao: CharlaDao,
-    private val artDao: ArtDao
+    private val asaaDao: AsaaDao
 ) {
     val todasLasCharlas: Flow<List<CharlaConAsistentes>> = charlaDao.getCharlasConAsistentes()
-    val todosLosArts: Flow<List<ArtConEtapas>> = artDao.getArtsConEtapas()
+    val todosLosAsaas: Flow<List<AsaaConEtapas>> = asaaDao.getAsaasConEtapas()
 
     suspend fun guardarCharlaCompleta(charla: CharlaEntity, asistentes: List<AsistenteEntity>) {
         withContext(Dispatchers.IO) {
@@ -26,13 +27,13 @@ class InacapRepository(
         }
     }
 
-    suspend fun guardarArtCompleto(
-        art: ArtEntity,
+    suspend fun guardarAsaaCompleto(
+        asaa: AsaaEntity,
         etapas: List<EtapaTrabajoEntity>,
-        personal: List<com.example.data.local.entities.PersonalEjecutanteEntity> = emptyList()
+        personal: List<PersonalEjecutanteEntity> = emptyList()
     ) {
         withContext(Dispatchers.IO) {
-            artDao.insertArtCompleto(art, etapas, personal)
+            asaaDao.insertAsaaCompleto(asaa, etapas, personal)
         }
     }
 
@@ -42,9 +43,9 @@ class InacapRepository(
         }
     }
 
-    suspend fun getArtsPendientes(): List<ArtEntity> {
+    suspend fun getAsaasPendientes(): List<AsaaEntity> {
         return withContext(Dispatchers.IO) {
-            artDao.getArtsPendientes()
+            asaaDao.getAsaasPendientes()
         }
     }
 
@@ -54,9 +55,9 @@ class InacapRepository(
         }
     }
 
-    suspend fun sincronizarArt(id: String) {
+    suspend fun sincronizarAsaa(id: String) {
         withContext(Dispatchers.IO) {
-            artDao.marcarSincronizado(id)
+            asaaDao.marcarSincronizado(id)
         }
     }
 
@@ -65,8 +66,8 @@ class InacapRepository(
             if (charlaDao.getCount() == 0) {
                 prepopularCharlasIniciales()
             }
-            if (artDao.getCount() == 0) {
-                prepopularArtsIniciales()
+            if (asaaDao.getCount() == 0) {
+                prepopularAsaasIniciales()
             }
         }
     }
@@ -193,10 +194,10 @@ class InacapRepository(
         charlaDao.insertCharlaCompleta(c5, a5)
     }
 
-    private suspend fun prepopularArtsIniciales() {
-        val art1Id = UUID.randomUUID().toString()
-        val art1 = ArtEntity(
-            id = art1Id,
+    private suspend fun prepopularAsaasIniciales() {
+        val asaa1Id = UUID.randomUUID().toString()
+        val asaa1 = AsaaEntity(
+            id = asaa1Id,
             trabajoActividad = "Desarme y montaje de culata de motor Diésel",
             especialidad = "Mecánica Automotriz y Autotrónica",
             fecha = "03/10/2026",
@@ -214,26 +215,31 @@ class InacapRepository(
             charlaSeguridadInicial = true,
             charlaVinculadaTema = "Riesgos en el uso de elevadores hidráulicos y fosas de inspección",
             charlaVinculadaFecha = "25/09/2026",
+            medidasControl = "1. Verificación de ausencia de tensión|3. Inspección de herramientas y equipos|6. Protección auditiva y visual según la tarea",
+            loto = true,
+            asaaComprendido = true,
+            observaciones = "Sin novedades durante la actividad",
+            hayFar = false,
             responsableFirmado = true,
             cerrada = true,
             sincronizado = true,
             timestamp = 1791014400000L
         )
         val e1 = listOf(
-            EtapaTrabajoEntity(artId = art1Id, etapa = "Desconexión de batería y drenaje de refrigerante", riesgoAsociado = "Quemaduras", medidaControl = "Esperar enfriamiento del motor y usar guantes térmicos", orden = 1),
-            EtapaTrabajoEntity(artId = art1Id, etapa = "Retiro de múltiples de admisión y escape", riesgoAsociado = "Golpeado por/contra/con", medidaControl = "Uso de herramientas calibradas y despeje de zona", orden = 2),
-            EtapaTrabajoEntity(artId = art1Id, etapa = "Izaje y retiro de culata", riesgoAsociado = "Caída de materiales", medidaControl = "Uso de pluma hidráulica y eslingas certificadas", orden = 3)
+            EtapaTrabajoEntity(asaaId = asaa1Id, etapa = "Desconexión de batería y drenaje de refrigerante", riesgoAsociado = "9 CC superficies calientes", medidaControl = "1. Verificación de ausencia de tensión", orden = 1),
+            EtapaTrabajoEntity(asaaId = asaa1Id, etapa = "Retiro de múltiples de admisión y escape", riesgoAsociado = "19 Golpeado por/Contra/Con", medidaControl = "3. Inspección de herramientas y equipos", orden = 2),
+            EtapaTrabajoEntity(asaaId = asaa1Id, etapa = "Izaje y retiro de culata", riesgoAsociado = "16 Caída igual o distinto nivel", medidaControl = "4. Delimitación y señalización del área de trabajo", orden = 3)
         )
         val p1 = listOf(
-            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Juan Morales Carrasco", rut = "19.845.210-4", firmado = true, horaFirma = "08:45", orden = 1),
-            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Felipe Carrasco Vidal", rut = "20.114.892-7", firmado = true, horaFirma = "08:46", orden = 2),
-            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art1Id, nombre = "Daniela Vega Poblete", rut = "19.531.004-K", firmado = true, horaFirma = "08:48", orden = 3)
+            PersonalEjecutanteEntity(asaaId = asaa1Id, nombre = "Juan Morales Carrasco", rut = "19.845.210-4", firmado = true, horaFirma = "08:45", orden = 1, far = false),
+            PersonalEjecutanteEntity(asaaId = asaa1Id, nombre = "Felipe Carrasco Vidal", rut = "20.114.892-7", firmado = true, horaFirma = "08:46", orden = 2, far = false),
+            PersonalEjecutanteEntity(asaaId = asaa1Id, nombre = "Daniela Vega Poblete", rut = "19.531.004-K", firmado = true, horaFirma = "08:48", orden = 3, far = false)
         )
-        artDao.insertArtCompleto(art1, e1, p1)
+        asaaDao.insertAsaaCompleto(asaa1, e1, p1)
 
-        val art2Id = UUID.randomUUID().toString()
-        val art2 = ArtEntity(
-            id = art2Id,
+        val asaa2Id = UUID.randomUUID().toString()
+        val asaa2 = AsaaEntity(
+            id = asaa2Id,
             trabajoActividad = "Calibración de sensores y tablero de control PLC",
             especialidad = "Electricidad Industrial",
             fecha = "30/09/2026",
@@ -251,19 +257,24 @@ class InacapRepository(
             charlaSeguridadInicial = true,
             charlaVinculadaTema = "Inspección previa de herramientas eléctricas y bloqueo LOTO",
             charlaVinculadaFecha = "02/10/2026",
+            medidasControl = "1. Verificación de ausencia de tensión|2. Equipo de protección personal dieléctrico|4. Delimitación y señalización del área de trabajo",
+            loto = true,
+            asaaComprendido = true,
+            observaciones = "Uso riguroso de bloqueo LOTO en tablero principal",
+            hayFar = false,
             responsableFirmado = true,
             cerrada = true,
             sincronizado = false,
             timestamp = 1790755200000L
         )
         val e2 = listOf(
-            EtapaTrabajoEntity(artId = art2Id, etapa = "Verificación de ausencia de tensión en barra principal", riesgoAsociado = "Choque eléctrico", medidaControl = "Uso de tester certificado y guantes clase 0", orden = 1),
-            EtapaTrabajoEntity(artId = art2Id, etapa = "Conexión de cableado de comunicación", riesgoAsociado = "Contacto con partes activas", medidaControl = "Aislamiento de terminales y bloqueo físico", orden = 2)
+            EtapaTrabajoEntity(asaaId = asaa2Id, etapa = "Verificación de ausencia de tensión en barra principal", riesgoAsociado = "1 Choque eléctrico", medidaControl = "1. Verificación de ausencia de tensión", orden = 1),
+            EtapaTrabajoEntity(asaaId = asaa2Id, etapa = "Conexión de cableado de comunicación", riesgoAsociado = "6 CC partes activas", medidaControl = "2. Equipo de protección personal dieléctrico", orden = 2)
         )
         val p2 = listOf(
-            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art2Id, nombre = "Ignacio Soto Palma", rut = "19.442.109-8", firmado = true, horaFirma = "10:15", orden = 1),
-            com.example.data.local.entities.PersonalEjecutanteEntity(artId = art2Id, nombre = "Valentina Rivas Gómez", rut = "20.551.782-3", firmado = true, horaFirma = "10:16", orden = 2)
+            PersonalEjecutanteEntity(asaaId = asaa2Id, nombre = "Ignacio Soto Palma", rut = "19.442.109-8", firmado = true, horaFirma = "10:15", orden = 1, far = false),
+            PersonalEjecutanteEntity(asaaId = asaa2Id, nombre = "Valentina Rivas Gómez", rut = "20.551.782-3", firmado = true, horaFirma = "10:16", orden = 2, far = false)
         )
-        artDao.insertArtCompleto(art2, e2, p2)
+        asaaDao.insertAsaaCompleto(asaa2, e2, p2)
     }
 }

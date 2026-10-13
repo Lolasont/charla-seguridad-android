@@ -28,5 +28,6 @@ data class AsistenteEntity(
     val observacion: String,
     val esExterno: Boolean = false,
     val procedencia: String = "",
-    val orden: Int = 0
+    val orden: Int = 0,
+    val far: Boolean = false
 )

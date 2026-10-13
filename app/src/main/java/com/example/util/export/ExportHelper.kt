@@ -1,4 +1,4 @@
-package com.example.util.export
+﻿package com.example.util.export
 
 import android.content.Context
 import android.content.Intent
@@ -8,7 +8,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
-import com.example.data.local.entities.ArtConEtapas
+import com.example.data.local.entities.AsaaConEtapas
 import com.example.model.HistorialItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -200,14 +200,14 @@ object ExportHelper {
         file
     }
 
-    suspend fun exportarAsaaCsv(context: Context, artConEtapas: ArtConEtapas): File = exportarArtCsv(context, artConEtapas)
+    suspend fun exportarAsaaCsv(context: Context, AsaaConEtapas: AsaaConEtapas): File = exportarAsaaCsvInternal(context, AsaaConEtapas)
 
-    suspend fun exportarArtCsv(context: Context, artConEtapas: ArtConEtapas): File = withContext(Dispatchers.IO) {
+    suspend fun exportarAsaaCsvInternal(context: Context, AsaaConEtapas: AsaaConEtapas): File = withContext(Dispatchers.IO) {
         val fileName = "art_${getTimestampString()}.csv"
         val file = File(getExportsDir(context), fileName)
-        val art = artConEtapas.art
-        val etapas = artConEtapas.etapas.sortedBy { it.orden }
-        val personal = artConEtapas.personalEjecutante.sortedBy { it.orden }
+        val art = AsaaConEtapas.art
+        val etapas = AsaaConEtapas.etapas.sortedBy { it.orden }
+        val personal = AsaaConEtapas.personalEjecutante.sortedBy { it.orden }
 
         FileOutputStream(file).use { fos ->
             fos.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
@@ -609,14 +609,14 @@ object ExportHelper {
         file
     }
 
-    suspend fun exportarAsaaPdf(context: Context, artConEtapas: ArtConEtapas): File = exportarArtPdf(context, artConEtapas)
+    suspend fun exportarAsaaPdf(context: Context, AsaaConEtapas: AsaaConEtapas): File = exportarAsaaPdfInternal(context, AsaaConEtapas)
 
-    suspend fun exportarArtPdf(context: Context, artConEtapas: ArtConEtapas): File = withContext(Dispatchers.IO) {
+    suspend fun exportarAsaaPdfInternal(context: Context, AsaaConEtapas: AsaaConEtapas): File = withContext(Dispatchers.IO) {
         val fileName = "art_${getTimestampString()}.pdf"
         val file = File(getExportsDir(context), fileName)
-        val art = artConEtapas.art
-        val etapas = artConEtapas.etapas.sortedBy { it.orden }
-        val personal = artConEtapas.personalEjecutante.sortedBy { it.orden }
+        val art = AsaaConEtapas.art
+        val etapas = AsaaConEtapas.etapas.sortedBy { it.orden }
+        val personal = AsaaConEtapas.personalEjecutante.sortedBy { it.orden }
 
         val document = PdfDocument()
         val pageWidth = 842
@@ -1291,3 +1291,4 @@ object ExportHelper {
         file
     }
 }
+

@@ -28,11 +28,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.viewmodel.ArtViewModel
+import com.example.viewmodel.AsaaViewModel
 import com.example.viewmodel.CharlasViewModel
 import com.example.ui.components.InacapTopBar
 import com.example.ui.navigation.NavScreen
-import com.example.ui.screens.ArtScreen
+import com.example.ui.screens.AsaaScreen
 import com.example.ui.screens.HistorialScreen
 import com.example.ui.screens.RegistroScreen
 import com.example.ui.theme.InacapRed
@@ -43,7 +43,7 @@ import com.example.ui.theme.TextSecondary
 @Composable
 fun MainScreen() {
     val charlasViewModel: CharlasViewModel = viewModel()
-    val artViewModel: ArtViewModel = viewModel()
+    val asaaViewModel: AsaaViewModel = viewModel()
     var currentScreen by rememberSaveable { mutableStateOf(NavScreen.REGISTRO) }
 
     // If on a secondary tab, pressing back returns to the primary tab (Registro)
@@ -109,13 +109,13 @@ fun MainScreen() {
             ) { targetScreen ->
                 when (targetScreen) {
                     NavScreen.REGISTRO -> RegistroScreen(viewModel = charlasViewModel)
-                    NavScreen.ART -> ArtScreen(
-                        viewModel = artViewModel,
+                    NavScreen.ASAA -> AsaaScreen(
+                        viewModel = asaaViewModel,
                         charlasViewModel = charlasViewModel
                     )
                     NavScreen.HISTORIAL -> HistorialScreen(
                         charlasViewModel = charlasViewModel,
-                        artViewModel = artViewModel
+                        artViewModel = asaaViewModel
                     )
                 }
             }

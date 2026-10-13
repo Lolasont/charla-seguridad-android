@@ -7,5 +7,6 @@ data class PersonalEjecutante(
     var nombre: String = "",
     var rut: String = "",
     var firmado: Boolean = false,
-    var horaFirma: String = ""
+    var horaFirma: String = "",
+    var far: Boolean = false
 )

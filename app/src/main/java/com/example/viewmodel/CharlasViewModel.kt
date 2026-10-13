@@ -125,8 +125,8 @@ class CharlasViewModel(application: Application) : AndroidViewModel(application)
             _isSyncing.value = true
 
             val charlasPendientes = repository.getCharlasPendientes()
-            val artsPendientes = repository.getArtsPendientes()
-            val totalPendientes = charlasPendientes.size + artsPendientes.size
+            val asaasPendientes = repository.getAsaasPendientes()
+            val totalPendientes = charlasPendientes.size + asaasPendientes.size
 
             if (totalPendientes > 0) {
                 // Sincronizar charlas de a una con animación / retardo de ~600ms
@@ -135,10 +135,10 @@ class CharlasViewModel(application: Application) : AndroidViewModel(application)
                     repository.sincronizarCharla(charla.id)
                 }
 
-                // Sincronizar arts de a uno
-                for (art in artsPendientes) {
+                // Sincronizar asaas de a uno
+                for (asaa in asaasPendientes) {
                     delay(600)
-                    repository.sincronizarArt(art.id)
+                    repository.sincronizarAsaa(asaa.id)
                 }
             }
 

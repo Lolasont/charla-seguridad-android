@@ -1,4 +1,4 @@
-package com.example.ui.screens
+﻿package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -77,7 +77,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.data.local.entities.ArtConEtapas
+import com.example.data.local.entities.AsaaConEtapas
 import com.example.model.HistorialItem
 import com.example.util.export.ExportHelper
 import com.example.ui.theme.InacapRed
@@ -90,7 +90,7 @@ import com.example.ui.theme.SyncSuccessBorder
 import com.example.ui.theme.SyncSuccessContainer
 import com.example.ui.theme.SyncSuccessText
 import com.example.ui.theme.TextSecondary
-import com.example.viewmodel.ArtViewModel
+import com.example.viewmodel.AsaaViewModel
 import com.example.viewmodel.CharlasViewModel
 import kotlinx.coroutines.launch
 
@@ -104,7 +104,7 @@ enum class TipoFiltroHistorial(val label: String) {
 fun HistorialScreen(
     modifier: Modifier = Modifier,
     charlasViewModel: CharlasViewModel = viewModel(),
-    artViewModel: ArtViewModel = viewModel()
+    artViewModel: AsaaViewModel = viewModel()
 ) {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -136,11 +136,8 @@ fun HistorialScreen(
             onVolver = { selectedCharlaId = null }
         )
     } else if (selectedArt != null) {
-        DetalleASAA(
-            artConEtapas = selectedArt,
-            onVolver = { selectedArtId = null },
-            artViewModel = artViewModel
-        )
+        // Redirect to ASAA creation screen instead of detailed edit view
+        DetalleASAA(asaaConEtapas = selectedArt, onVolver = { selectedArtId = null })
     } else {
         Box(
             modifier = modifier
@@ -373,7 +370,7 @@ fun HistorialScreen(
                         1 -> {
                             HistorialArtView(
                                 artItems = artItems,
-                                onItemClick = { artConEtapas -> selectedArtId = artConEtapas.art.id }
+                                onItemClick = { AsaaConEtapas -> selectedArtId = AsaaConEtapas.art.id }
                             )
                         }
                     }
@@ -606,8 +603,8 @@ private fun HistorialCharlasView(
 // -----------------------------------------------------------------------------
 @Composable
 private fun HistorialArtView(
-    artItems: List<ArtConEtapas>,
-    onItemClick: (ArtConEtapas) -> Unit
+    artItems: List<AsaaConEtapas>,
+    onItemClick: (AsaaConEtapas) -> Unit
 ) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
@@ -755,7 +752,7 @@ private fun HistorialArtView(
                     key = { it.art.id }
                 ) { item ->
                     HistorialArtCardItem(
-                        artConEtapas = item,
+                        AsaaConEtapas = item,
                         onClick = { onItemClick(item) }
                     )
                 }
@@ -1023,12 +1020,12 @@ fun HistorialCardItem(
 // -----------------------------------------------------------------------------
 @Composable
 fun HistorialArtCardItem(
-    artConEtapas: ArtConEtapas,
+    AsaaConEtapas: AsaaConEtapas,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val art = artConEtapas.art
-    val etapasCount = artConEtapas.etapas.size
+    val art = AsaaConEtapas.art
+    val etapasCount = AsaaConEtapas.etapas.size
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isExporting by remember { mutableStateOf(false) }
@@ -1251,7 +1248,7 @@ fun HistorialArtCardItem(
                     coroutineScope.launch {
                         try {
                             isExporting = true
-                            ExportHelper.exportarAsaaPdf(context, artConEtapas)
+                            ExportHelper.exportarAsaaPdf(context, AsaaConEtapas)
                         } catch (e: Exception) {
                             android.widget.Toast.makeText(
                                 context,
@@ -1288,3 +1285,4 @@ fun HistorialArtCardItem(
         }
     }
 }
+

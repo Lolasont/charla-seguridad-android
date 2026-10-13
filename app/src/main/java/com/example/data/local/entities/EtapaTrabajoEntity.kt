@@ -10,17 +10,17 @@ import java.util.UUID
     tableName = "etapas_trabajo",
     foreignKeys = [
         ForeignKey(
-            entity = ArtEntity::class,
+            entity = AsaaEntity::class,
             parentColumns = ["id"],
-            childColumns = ["artId"],
+            childColumns = ["asaaId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("artId")]
+    indices = [Index("asaaId")]
 )
 data class EtapaTrabajoEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val artId: String,
+    val asaaId: String,
     val etapa: String,
     val riesgoAsociado: String,
     val medidaControl: String,
